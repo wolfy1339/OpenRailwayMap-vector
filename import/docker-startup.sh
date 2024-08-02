@@ -43,7 +43,7 @@ import)
     --slim \
     --middle-database-format new \
     --output flex \
-    --style openrailwaymap.lua \
+    --style import/openrailwaymap.lua \
     --cache "${OSM2PGSQL_CACHE:-256}" \
     --number-processes "${OSM2PGSQL_NUMPROC:-4}" \
     "$OSM2PGSQL_FILTERED_FILE"
@@ -62,7 +62,7 @@ update)
     -- \
     --slim \
     --output flex \
-    --style openrailwaymap.lua \
+    --style import/openrailwaymap.lua \
     --cache "${OSM2PGSQL_CACHE:-256}" \
     --number-processes "${OSM2PGSQL_NUMPROC:-4}"
 

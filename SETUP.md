@@ -1,14 +1,60 @@
 # Setup
 
+```sh
+apt install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    gnupg \
+    osm2pgsql \
+    osmium-tool \
+    gdal-bin \
+    python3-psycopg2 \
+    python3-yaml \
+    python3-requests \
+    unzip \
+    postgresql-client \
+    cargo \
+    git \
+    nginx
+```
+Get node from https://github.com/nodesource/distributions
+
+Edit `/etc/postgresql/16/main/pg_hba.conf`:
+Change the following:
+```
+local   all             postgres                                peer
+```
+to
+```
+local   all             postgres                                trust
+```
+
+```sh
+POSTGRES_USER="postgres" ./db/tune-postgis.sh
+cargo install cargo-binstall template
+cargo binstall martin
+export PATH=$PATH:~/.cargo/bin/
+cat features/electrification_signals.yaml features/speed_railway_signals.yaml features/train_protection.yaml features/signals_railway_signals.yaml \
+  | template --configuration - --format yaml --template import/openrailwaymap.lua.tmpl \
+  > import/openrailwaymap.lua
+cat features/electrification_signals.yaml features/signals_railway_signals.yaml features/speed_railway_signals.yaml \
+  | template --configuration - --format yaml --template import/sql/tile_views.sql.tmpl \
+  > import/sql/tile_views.sql
+```
+
 ## Fetching data
 
 Download an OpenStreetMap data file, for example from https://download.geofabrik.de/europe.html. Store the file as `data/data.osm.pbf` (you can customize the filename with `OSM2PGSQL_DATAFILE`).
+
+```sh
+curl http://download.geofabrik.de/north-america-latest.osm.pbf -o data/data.osm.pbf
+```
 
 ## Development
 
 Import the data:
 ```shell
-docker compose run --build import import
+./import/docker-startup.sh import
 ```
 The import process will filter the file before importing it. The filtered file will be stored in the `data/filtered` directory, so future imports of the same data file can reuse the filtered data file.
 
