@@ -312,16 +312,48 @@ $$ LANGUAGE plpgsql
     LEAKPROOF
     PARALLEL SAFE;
 
--- Get name for labelling in standard style depending whether it is a bridge, a tunnel or none of these two.
-CREATE OR REPLACE FUNCTION railway_label_name(name TEXT, tunnel TEXT, tunnel_name TEXT, bridge TEXT, bridge_name TEXT) RETURNS TEXT AS $$
+CREATE OR REPLACE FUNCTION railway_reporting_marks(reporting_marks TEXT[], primary_operator_only BOOLEAN) RETURNS TEXT AS $$
+DECLARE
+  others TEXT;
+  array_size INT;
 BEGIN
+  array_size := array_length(reporting_marks, 1);
+
+  IF array_size IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  IF primary_operator_only OR array_size = 1 THEN
+    RETURN reporting_marks[1];
+  END IF;
+
+  others := '(' || array_to_string(reporting_marks[2:], ', ') || ')';
+
+  RETURN COALESCE(reporting_marks[1] || ' ' || others, reporting_marks[1], others);
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Get name for labelling in standard style depending whether it is a bridge, a tunnel or none of these two.
+CREATE OR REPLACE FUNCTION railway_label_name(reporting_marks TEXT[], name TEXT, tunnel TEXT, tunnel_name TEXT, bridge TEXT, bridge_name TEXT) RETURNS TEXT AS $$
+DECLARE
+  reporting_marks_text TEXT;
+  label TEXT;
+BEGIN
+  reporting_marks_text := railway_reporting_marks(reporting_marks, false);
+
+  -- Determine the base label based on tunnel and bridge
   IF tunnel IS NOT NULL AND tunnel != 'no' THEN
-    RETURN COALESCE(tunnel_name, name);
+    label := COALESCE(tunnel_name, name);
+  ELSIF bridge IS NOT NULL AND bridge != 'no' THEN
+    label := COALESCE(bridge_name, name);
+  ELSE
+    label := name;
   END IF;
-  IF bridge IS NOT NULL AND bridge != 'no' THEN
-    RETURN COALESCE(bridge_name, name);
-  END IF;
-  RETURN name;
+
+  -- Prepend reporting marks if not NULL
+  RETURN COALESCE(reporting_marks_text, '') || CASE WHEN reporting_marks_text IS NOT NULL THEN ' ' ELSE '' END || label;
+
 END;
 $$ LANGUAGE plpgsql
     IMMUTABLE

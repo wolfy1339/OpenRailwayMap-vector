@@ -25,6 +25,7 @@ CREATE OR REPLACE VIEW railway_line_high AS
         END AS standard_label,
         ref,
         track_ref,
+        reporting_marks,
         CASE
             WHEN railway = 'rail' AND usage IN ('tourism', 'military', 'test') AND service IS NULL THEN 400
             WHEN railway = 'rail' AND usage IS NULL AND service IS NULL THEN 400
@@ -70,6 +71,7 @@ CREATE OR REPLACE VIEW railway_line_high AS
              usage,
              service,
              highspeed,
+             reporting_marks,
              disused_railway,
              abandoned_railway,
              razed_railway,
@@ -82,9 +84,9 @@ CREATE OR REPLACE VIEW railway_line_high AS
              track_ref,
              ref,
              CASE
-                 WHEN railway = 'abandoned' THEN railway_label_name(COALESCE(abandoned_name, name), tunnel, tunnel_name, bridge, bridge_name)
-                 WHEN railway = 'razed' THEN railway_label_name(COALESCE(razed_name, name), tunnel, tunnel_name, bridge, bridge_name)
-                 ELSE railway_label_name(name, tunnel, tunnel_name, bridge, bridge_name)
+                 WHEN railway = 'abandoned' THEN railway_label_name(reporting_marks, COALESCE(abandoned_name, name), tunnel, tunnel_name, bridge, bridge_name)
+                 WHEN railway = 'razed' THEN railway_label_name(reporting_marks, COALESCE(razed_name, name), tunnel, tunnel_name, bridge, bridge_name)
+                 ELSE railway_label_name(reporting_marks, name, tunnel, tunnel_name, bridge, bridge_name)
              END AS label_name,
              maxspeed,
              maxspeed_forward,
@@ -114,14 +116,72 @@ CREATE OR REPLACE VIEW railway_line_high AS
 
 CREATE OR REPLACE VIEW railway_line_med AS
     SELECT
-        *
+        id,
+        way,
+        railway,
+        feature,
+        usage,
+        service,
+        highspeed,
+        tunnel,
+        bridge,
+        railway_reporting_marks(reporting_marks, true) AS standard_label,
+        ref,
+        track_ref,
+        rank,
+        maxspeed,
+        speed_label,
+        train_protection_rank,
+        train_protection,
+        electrification_state,
+        voltage,
+        frequency,
+        electrification_label,
+        future_voltage,
+        future_frequency,
+        gaugeint0,
+        gauge0,
+        gaugeint1,
+        gauge1,
+        gaugeint2,
+        gauge2,
+        gauge_label
     FROM
         railway_line_high
     WHERE railway = 'rail' AND usage IN ('main', 'branch') AND service IS NULL;
 
 CREATE OR REPLACE VIEW railway_line_low AS
     SELECT
-        *
+        id,
+        way,
+        railway,
+        feature,
+        usage,
+        service,
+        highspeed,
+        tunnel,
+        bridge,
+        railway_reporting_marks(reporting_marks, false) AS standard_label,
+        ref,
+        track_ref,
+        rank,
+        maxspeed,
+        speed_label,
+        train_protection_rank,
+        train_protection,
+        electrification_state,
+        voltage,
+        frequency,
+        electrification_label,
+        future_voltage,
+        future_frequency,
+        gaugeint0,
+        gauge0,
+        gaugeint1,
+        gauge1,
+        gaugeint2,
+        gauge2,
+        gauge_label
     FROM
         railway_line_high
     WHERE railway = 'rail' AND usage = 'main' AND service IS NULL;
