@@ -16,14 +16,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Setup Fly
-        uses: superfly/flyctl-actions/setup-flyctl@master
+      #- name: Setup Fly
+      #  uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Deploy
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          flyctl deploy --config proxy.fly.toml --local-only
+      #- name: Deploy
+      #  env:
+      #    FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      #  run: |
+      #    flyctl deploy --config proxy.fly.toml --local-only
 
   generate-tiles:
     name: Generate tiles
@@ -61,7 +61,7 @@ jobs:
       - name: Generate tiles
         env:
           TILES: ${{ matrix.tiles }}
-          BBOX: '-10.0,35.7,39.0,70.0'
+          BBOX: '-11.3818,35.8891,25.0488,70.0'
         run: |
           docker compose run martin-cp
           ls -las tiles/
@@ -107,11 +107,11 @@ jobs:
         run: |
           ls -lah tiles/
 
-      - name: Deploy
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          flyctl deploy --config martin-static.fly.toml --local-only
+      #- name: Deploy
+      #  env:
+      #    FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      #  run: |
+      #    flyctl deploy --config martin-static.fly.toml --local-only
 
   deploy-api:
     name: Deploy API
@@ -125,8 +125,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Setup Fly
-        uses: superfly/flyctl-actions/setup-flyctl@master
+      #- name: Setup Fly
+      #  uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -151,8 +151,8 @@ jobs:
         run: |
           docker compose logs api-import
 
-      - name: Deploy
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          flyctl deploy --config api.fly.toml --local-only api
+      #- name: Deploy
+      #  env:
+      #    FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      #  run: |
+      #    flyctl deploy --config api.fly.toml --local-only api
