@@ -90,7 +90,7 @@ docker compose run --build import import
 
 Build the tiles:
 ```shell
-export BBOX='-11.3818,35.8891,25.0488,70.0'
+export BBOX='-190.2,11.8,-45.0,83.9'
 for tile in low-med high standard speed signals electrification; do
     env "TILES=$tile" docker compose up martin-cp
 done
