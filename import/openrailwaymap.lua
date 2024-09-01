@@ -19,6 +19,14 @@ function map(tbl, f)
     return t
 end
 
+function strip_prefix(value, prefix)
+  if osm2pgsql.has_prefix(value, prefix) then
+    return value:sub(prefix:len() + 1)
+  else
+    return value
+  end
+end
+
 local railway_line = osm2pgsql.define_table({
   name = 'railway_line',
   ids = { type = 'way', id_column = 'osm_id' },
@@ -343,6 +351,8 @@ function osm2pgsql.process_node(object)
       (tags['railway:signal:distant'] and 9000) or
       (tags['railway:signal:train_protection'] and 8500) or
       (tags['railway:signal:main_repeated'] and 8000) or
+      (tags['railway:signal:speed_limit'] and 5500) or
+      (tags['railway:signal:speed_limit_distant'] and 5000) or
       (tags['railway:signal:minor'] and 4000) or
       (tags['railway:signal:passing'] and 3500) or
       (tags['railway:signal:shunting'] and 3000) or
@@ -353,6 +363,7 @@ function osm2pgsql.process_node(object)
       (tags['railway:signal:crossing_distant'] and 500) or
       (tags['railway:signal:ring'] and 500) or
       (tags['railway:signal:whistle'] and 500) or
+      (tags['railway:signal:electricity'] and 500) or
       (tags['railway:signal:departure'] and 400) or
       (tags['railway:signal:resetting_switch'] and 300) or
       (tags['railway:signal:resetting_switch_distant'] and 200) or
@@ -412,8 +423,8 @@ function osm2pgsql.process_node(object)
     railway_positions:insert({
       way = object:as_point(),
       railway = tags.railway,
-      railway_position = tags['railway:position'],
-      railway_position_exact = tags['railway:position:exact'],
+      railway_position = strip_prefix(tags['railway:position'], 'mi:'),
+      railway_position_exact = strip_prefix(tags['railway:position:exact'], 'mi:'),
       name = tags['name'],
       ref = tags['ref'],
     })
