@@ -312,30 +312,32 @@ $$ LANGUAGE plpgsql
     LEAKPROOF
     PARALLEL SAFE;
 
-CREATE OR REPLACE FUNCTION railway_reporting_marks(reporting_marks TEXT[], primary_operator_only BOOLEAN) RETURNS TEXT AS $$
+CREATE OR REPLACE FUNCTION railway_reporting_marks(reporting_marks TEXT, primary_operator_only BOOLEAN) RETURNS TEXT AS $$
 DECLARE
+  marks TEXT[];
   others TEXT;
   array_size INT;
 BEGIN
-  array_size := array_length(reporting_marks, 1);
+  marks := string_to_array(reporting_marks, ', ');
+  array_size := array_length(marks, 1);
 
   IF array_size IS NULL THEN
     RETURN NULL;
   END IF;
 
   IF primary_operator_only OR array_size = 1 THEN
-    RETURN reporting_marks[1];
+    RETURN marks[1];
   END IF;
 
-  others := '(' || array_to_string(reporting_marks[2:], ', ') || ')';
+  others := '(' || array_to_string(marks[2:], ', ') || ')';
 
-  RETURN COALESCE(reporting_marks[1] || ' ' || others, reporting_marks[1], others);
+  RETURN COALESCE(marks[1] || ' ' || others, marks[1], others);
 END;
 $$ LANGUAGE plpgsql;
 
 
 -- Get name for labelling in standard style depending whether it is a bridge, a tunnel or none of these two.
-CREATE OR REPLACE FUNCTION railway_label_name(reporting_marks TEXT[], name TEXT, tunnel TEXT, tunnel_name TEXT, bridge TEXT, bridge_name TEXT) RETURNS TEXT AS $$
+CREATE OR REPLACE FUNCTION railway_label_name(reporting_marks TEXT, name TEXT, tunnel TEXT, tunnel_name TEXT, bridge TEXT, bridge_name TEXT) RETURNS TEXT AS $$
 DECLARE
   reporting_marks_text TEXT;
   label TEXT;
