@@ -607,6 +607,7 @@ function popupContent(properties) {
       ${properties.tunnel === true ? `<span class="badge badge-pill badge-light">tunnel</span>` : ''}
       ${properties.bridge === true ? `<span class="badge badge-pill badge-light">bridge</span>` : ''}
       ${properties.railway_local_operated === true ? `<span class="badge badge-pill badge-light">operated locally</span>` : ''}
+      ${properties.track_class ? `<span class="badge badge-pill badge-light">track class: <span class="text-monospace">${properties.track_class}</span></span>` : ''}
       ${properties.maxspeed ? `<span class="badge badge-pill badge-light">maximum speed: ${properties.maxspeed} km/h</span>` : ''}
       ${properties.direction_both ? `<span class="badge badge-pill badge-light">both directions</span>` : ''}
       ${properties.train_protection ? `<span class="badge badge-pill badge-light">train protection: <span class="text-monospace">${properties.train_protection}</span></span>` : ''}

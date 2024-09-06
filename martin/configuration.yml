@@ -45,6 +45,7 @@ postgres:
         ref: string
         standard_label: string
         track_ref: string
+        track_class: integer
         maxspeed: number
         speed_label: string
         train_protection: string
@@ -83,6 +84,7 @@ postgres:
         ref: string
         standard_label: string
         track_ref: string
+        track_class: integer
         maxspeed: number
         speed_label: string
         train_protection: string
@@ -125,6 +127,7 @@ postgres:
         speed_label: string
         train_protection: string
         train_protection_rank: integer
+        track_class: integer
         electrification_state: string
         frequency: number
         voltage: number

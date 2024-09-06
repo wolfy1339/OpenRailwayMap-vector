@@ -25,6 +25,7 @@ CREATE OR REPLACE VIEW railway_line_high AS
         END AS standard_label,
         ref,
         track_ref,
+        track_class,
         array_to_string(reporting_marks, ', ') as reporting_marks,
         CASE
             WHEN railway = 'rail' AND usage IN ('tourism', 'military', 'test') AND service IS NULL THEN 400
@@ -82,6 +83,7 @@ CREATE OR REPLACE VIEW railway_line_high AS
              bridge,
              tunnel,
              track_ref,
+             track_class,
              ref,
              CASE
                  WHEN railway = 'abandoned' THEN railway_label_name(reporting_marks, COALESCE(abandoned_name, name), tunnel, tunnel_name, bridge, bridge_name)
