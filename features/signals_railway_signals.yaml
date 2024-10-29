@@ -6,6 +6,7 @@ signals_railway_signals:
     - 'railway:signal:combined:states'
     - 'railway:signal:combined:shortened'
     - 'railway:signal:combined:substitute_signal'
+    - 'railway:signal:combined:height'
     - 'railway:signal:crossing'
     - 'railway:signal:crossing:form'
     - 'railway:signal:crossing:repeated'
@@ -22,6 +23,7 @@ signals_railway_signals:
     - 'railway:signal:distant:states'
     - 'railway:signal:distant:height'
     - 'railway:signal:distant:type'
+    - 'railway:signal:distant:distance'
     - 'railway:signal:fouling_point'
     - 'railway:signal:helper_engine'
     - 'railway:signal:helper_engine:form'
@@ -381,6 +383,101 @@ signals_railway_signals:
       tags:
         - { tag: 'railway:signal:main', value: 'BE-SME:simplified_stop_signal' }
 
+    # --- CH --- #
+
+    - description: Vorsignal System L
+      country: CH
+      icon:
+        match: 'railway:signal:distant:states'
+        cases:
+          - { regex: '^(.*;)?CH-FDV:538(;.*)?$', value: 'ch/fdv-l-538' }
+          - { regex: '^(.*;)?CH-FDV:536(;.*)?$', value: 'ch/fdv-l-536' }
+          - { regex: '^(.*;)?CH-FDV:529(;.*)?$', value: 'ch/fdv-l-529' }
+          - { regex: '^(.*;)?CH-FDV:534(;.*)?$', value: 'ch/fdv-l-534' }
+        default: 'ch/fdv-l-528'
+      tags:
+        - { tag: 'railway:signal:distant', value: 'CH-FDV:l' }
+        - { tag: 'railway:signal:distant:form', value: 'light' }
+
+    - description: Mini-Hauptsignal System L
+      country: CH
+      icon: { default: 'ch/fdv-l-522.1' }
+      tags:
+        - { tag: 'railway:signal:combined', value: 'CH-FDV:512' }
+        - { tag: 'railway:signal:combined:form', value: 'light' }
+        - { tag: 'railway:signal:combined:height', value: 'dwarf' }
+
+    - description: Hauptsignal System L
+      country: CH
+      icon:
+        match: 'railway:signal:main:states'
+        cases:
+          - { regex: '^(.*;)?CH-FDV:550(;.*)?$', value: 'ch/fdv-l-550' }
+          - { regex: '^(.*;)?CH-FDV:547(;.*)?$', value: 'ch/fdv-l-547' }
+          - { regex: '^(.*;)?CH-FDV:542(;.*)?$', value: 'ch/fdv-l-542' }
+          - { regex: '^(.*;)?CH-FDV:545(;.*)?$', value: 'ch/fdv-l-545' }
+          - { regex: '^(.*;)?CH-FDV:530(;.*)?$', value: 'ch/fdv-l-530' }
+        default: 'ch/fdv-l-524'
+      tags:
+        - { tag: 'railway:signal:main', value: 'CH-FDV:l' }
+        - { tag: 'railway:signal:main:form', value: 'light' }
+
+    - description: Hauptsignal System L (combined)
+      country: CH
+      icon:
+        match: 'railway:signal:combined:states'
+        cases:
+          - { regex: '^(.*;)?CH-FDV:548(;.*)?$', value: 'ch/fdv-l-548' }
+          - { regex: '^(.*;)?CH-FDV:551(;.*)?$', value: 'ch/fdv-l-551' }
+          - { regex: '^(.*;)?CH-FDV:546(;.*)?$', value: 'ch/fdv-l-546' }
+          - { regex: '^(.*;)?CH-FDV:543(;.*)?$', value: 'ch/fdv-l-543' }
+          - { regex: '^(.*;)?CH-FDV:539(;.*)?$', value: 'ch/fdv-l-539' }
+          - { regex: '^(.*;)?CH-FDV:537(;.*)?$', value: 'ch/fdv-l-537' }
+          - { regex: '^(.*;)?CH-FDV:535(;.*)?$', value: 'ch/fdv-l-535' }
+          - { regex: '^(.*;)?CH-FDV:531(;.*)?$', value: 'ch/fdv-l-531' }
+        default: 'ch/fdv-l-525'
+      tags:
+        - { tag: 'railway:signal:combined', value: 'CH-FDV:l' }
+        - { tag: 'railway:signal:combined:form', value: 'light' }
+
+    - description: Vorsignal System N
+      country: CH
+      icon:
+        match: 'railway:signal:distant:states'
+        cases:
+          - { regex: '^(.*;)?CH-FDV:(522|521)(;.*)?$', value: 'ch/fdv-n-521' }
+        default: 'ch/fdv-n-533'
+      tags:
+        - { tag: 'railway:signal:distant', value: 'CH-FDV:n' }
+        - { tag: 'railway:signal:distant:form', value: 'light' }
+
+    - description: Hauptsignal System N
+      country: CH
+      icon:
+        match: 'railway:signal:combined:states'
+        cases:
+          - { regex: '^(.*;)?CH-FDV:523(;.*)?$', value: 'ch/fdv-n-523' }
+          - { regex: '^(.*;)?CH-FDV:552(;.*)?$', value: 'ch/fdv-n-552' }
+          - { regex: '^(.*;)?CH-FDV:(532|533)(;.*)?$', value: 'ch/fdv-n-532' }
+        default: 'ch/fdv-n-526'
+      tags:
+        - { tag: 'railway:signal:combined', value: 'CH-FDV:n' }
+        - { tag: 'railway:signal:combined:form', value: 'light' }
+
+    - description: Minor signal
+      country: CH
+      icon: { default: 'ch/fdv-232' }
+      tags:
+        - { tag: 'railway:signal:minor', value: 'CH-FDV:232' }
+        - { tag: 'railway:signal:minor:form', value: 'light' }
+
+    - description: Fahrtstellungsmelder
+      country: CH
+      icon: { default: 'ch/fdv-559' }
+      tags:
+        - { tag: 'railway:signal:main_repeated', value: 'CH-FDV:559' }
+        - { tag: 'railway:signal:main_repeated:form', value: 'light' }
+
     # --- DE --- #
 
     - description: Bü 4 Whistle Sign
@@ -729,9 +826,18 @@ signals_railway_signals:
 
     - description: Blockkennzeichen
       country: DE
-      # TODO match width and height
-      # WHEN ref_width <= 4 AND ref_height <= 2 THEN CONCAT('de/blockkennzeichen-', ref_width, 'x', ref_height)
-      icon: { default: 'de/blockkennzeichen' }
+      icon:
+        match: 'ref_multiline'
+        cases:
+          - { regex: '^([^\n]{4}\n[^\n]{1,4})|([^\n]{1,4}\n[^\n]{4})$', value: 'de/blockkennzeichen-4x2' }
+          - { regex: '^[^\n]{4}$', value: 'de/blockkennzeichen-4x1' }
+          - { regex: '^([^\n]{3}\n[^\n]{1,3})|([^\n]{1,3}\n[^\n]{3})$', value: 'de/blockkennzeichen-3x2' }
+          - { regex: '^[^\n]{3}$', value: 'de/blockkennzeichen-3x1' }
+          - { regex: '^([^\n]{2}\n[^\n]{1,2})|([^\n]{1,2}\n[^\n]{2})$', value: 'de/blockkennzeichen-2x2' }
+          - { regex: '^[^\n]{2}$', value: 'de/blockkennzeichen-2x1' }
+          - { regex: '^[^\n]\n[^\n]$', value: 'de/blockkennzeichen-1x2' }
+          - { regex: '^[^\n]$', value: 'de/blockkennzeichen-1x1' }
+        default: 'de/blockkennzeichen'
       tags:
         - { tag: 'railway:signal:train_protection', value: 'DE-ESO:blockkennzeichen' }
 
@@ -832,7 +938,7 @@ signals_railway_signals:
         - { tag: 'railway:signal:combined', value: 'DE-ESO:hl' }
         - { tag: 'railway:signal:combined:form', value: 'light' }
 
-    - description: tram main signal "Fahrsignal"
+    - description: tram Fahrsignal
       country: DE
       icon:
         match: 'railway:signal:main:states'
@@ -845,6 +951,20 @@ signals_railway_signals:
       tags:
         - { tag: 'railway:signal:main', values: ['DE-AVG:f', 'DE-BOStrab:f'] }
         - { tag: 'railway:signal:main:form', value: 'light' }
+
+    - description: tram Hauptsignal
+      country: DE
+      icon: { default: 'de/ks-main' }
+      tags:
+        - { tag: 'railway:signal:main', value: 'DE-BOStrab:h' }
+        - { tag: 'railway:signal:main:form', value: 'light' }
+
+    - description: tram Hauptsignal mit Vorsignal
+      country: DE
+      icon: { default: 'de/ks-combined' }
+      tags:
+        - { tag: 'railway:signal:combined', value: 'DE-BOStrab:h' }
+        - { tag: 'railway:signal:combined:form', value: 'light' }
 
     - description: Hamburger Hochbahn main signal
       country: DE
@@ -1038,6 +1158,32 @@ signals_railway_signals:
       tags:
         - { tag: 'railway:signal:distant', value: 'FR:D' }
         - { tag: 'railway:signal:distant:form', value: 'light' }
+
+    # --- GB --- #
+
+    - description: Main (shunting)
+      country: GB
+      icon: { default: 'gb/main-shunting' }
+      tags:
+        - { tag: 'railway:signal:main', value: 'GB-NR:main' }
+        - { tag: 'railway:signal:main:form', value: 'light' }
+        - { tag: 'railway:signal:shunting', value: 'GB-NR:shunting' }
+        - { tag: 'railway:signal:shunting:form', value: 'light' }
+
+    - description: Main
+      country: GB
+      # TODO support railway:signal:main:design=individual/combined for 2 or 4 lenses
+      icon: { default: 'gb/main' }
+      tags:
+        - { tag: 'railway:signal:main', value: 'GB-NR:main' }
+        - { tag: 'railway:signal:main:form', value: 'light' }
+
+    - description: Shunting
+      country: GB
+      icon: { default: 'gb/shunting' }
+      tags:
+        - { tag: 'railway:signal:shunting', value: 'GB-NR:shunting' }
+        - { tag: 'railway:signal:shunting:form', value: 'light' }
 
     # --- NL --- #
 
@@ -1656,3 +1802,112 @@ signals_railway_signals:
       icon: { default: 'pl/ztm-mw/wm17' }
       tags:
         - { tag: 'railway:signal:fouling_point', value: 'ZTM-MW:wm17' }
+
+    # --- SE --- #
+
+    - description: Mellansignal (dvärg)
+      country: SE
+      icon: { default: 'se/shunting-main' }
+      tags:
+        - { tag: 'railway:signal:main', value: 'SE:Mellansignal' }
+        - { tag: 'railway:signal:main:form', value: 'light' }
+        - { tag: 'railway:signal:main:height', value: 'dwarf' }
+
+    - description: Växlingsdvärgsignal
+      country: SE
+      icon: { default: 'se/shunting' }
+      tags:
+        - { tag: 'railway:signal:shunting', value: 'SE:Växlingsdvärgsignal' }
+        - { tag: 'railway:signal:shunting:form', value: 'light' }
+
+    - description: Skyddsstopplykta
+      country: SE
+      icon: { default: 'se/skyddsstopplykta' }
+      tags:
+        - { tag: 'railway:signal:shunting', value: 'SE:Skyddsstopplykta' }
+        - { tag: 'railway:signal:shunting:form', value: 'sign' }
+
+    - description: Mellanblocksignal, Utfartsblocksignal (main)
+      country: SE
+      # TODO support icons for each variant
+      icon: { default: 'se/main-block' }
+      tags:
+        - { tag: 'railway:signal:main', values: ['SE:Utfartsblocksignal', 'SE:Mellanblocksignal'] }
+        - { tag: 'railway:signal:main:form', value: 'light' }
+
+    - description: Linjeplatssignal (main)
+      country: SE
+      icon: { default: 'se/main-section' }
+      tags:
+        - { tag: 'railway:signal:main', value: 'SE:Linjeplatssignal' }
+        - { tag: 'railway:signal:main:form', value: 'light' }
+
+    - description: Infartssignal, Mellansignal, Utfartssignal (main)
+      country: SE
+      # TODO support icons for each variant
+      icon: { default: 'se/main' }
+      tags:
+        - { tag: 'railway:signal:main', values: ['SE:Huvudsignal', 'SE:Utfartssignal', 'SE:Infartssignal', 'SE:Mellansignal'] }
+        - { tag: 'railway:signal:main:form', value: 'light' }
+
+    - description: Mellanblocksignal, Utfartsblocksignal (combined)
+      country: SE
+      # TODO support icons for each variant
+      icon: { default: 'se/combined-block' }
+      tags:
+        - { tag: 'railway:signal:combined', values: ['SE:Utfartsblocksignal', 'SE:Mellanblocksignal'] }
+        - { tag: 'railway:signal:combined:form', value: 'light' }
+
+    - description: Infartssignal, Mellansignal, Utfartssignal (combined)
+      country: SE
+      # TODO support icons for each variant
+      icon: { default: 'se/combined' }
+      tags:
+        - { tag: 'railway:signal:combined', values: ['SE:Huvudsignal', 'SE:Utfartssignal', 'SE:Infartssignal', 'SE:Mellansignal'] }
+        - { tag: 'railway:signal:combined:form', value: 'light' }
+
+    - description: Linjeplatssignal (combined)
+      country: SE
+      icon: { default: 'se/combined-section' }
+      tags:
+        - { tag: 'railway:signal:combined', value: 'SE:Linjeplatssignal' }
+        - { tag: 'railway:signal:combined:form', value: 'light' }
+
+    - description: Försignal
+      country: SE
+      icon: { default: 'se/försignal' }
+      tags:
+        - { tag: 'railway:signal:distant', value: 'SE:Försignal' }
+        - { tag: 'railway:signal:distant:form', value: 'light' }
+
+    - description: Repeterbalister
+      country: SE
+      icon: { default: 'se/repeterbaliser' }
+      tags:
+        - { tag: 'railway:signal:train_protection', value: 'SE:Repeterbaliser' }
+        - { tag: 'railway:signal:train_protection:form', value: 'sign' }
+
+    - description: Repetersignal
+      country: SE
+      icon: { default: 'se/repetersignal' }
+      tags:
+        - { tag: 'railway:signal:main_repeated', value: 'SE:Repetersignal' }
+        - { tag: 'railway:signal:main_repeated:form', value: 'light' }
+
+    - description: Orienteringstavla huvudsignal
+      country: SE
+      icon:
+        match: 'railway:signal:distant:distance'
+        cases:
+          - { regex: '^.+$', value: 'se/orienteringstavla-huvudsignal-avstånd' }
+        default: 'se/orienteringstavla-huvudsignal'
+      tags:
+        - { tag: 'railway:signal:distant', value: 'SE:orienteringstavla' }
+        - { tag: 'railway:signal:distant:form', value: 'sign' }
+
+    - description: Vägskyddssignal
+      country: SE
+      icon: { default: 'se/vägskyddssignal' }
+      tags:
+        - { tag: 'railway:signal:crossing', value: 'SE:Vägskyddssignal' }
+        - { tag: 'railway:signal:crossing:form', value: 'light' }

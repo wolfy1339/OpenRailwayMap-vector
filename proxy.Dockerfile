@@ -12,11 +12,13 @@ RUN --mount=type=bind,source=proxy/js/styles.mjs,target=styles.mjs \
   --mount=type=bind,source=features/speed_railway_signals.yaml,target=speed_railway_signals.yaml \
   --mount=type=bind,source=features/electrification_signals.yaml,target=electrification_signals.yaml \
   --mount=type=bind,source=features/signals_railway_signals.yaml,target=signals_railway_signals.yaml \
+  --mount=type=bind,source=features/loading_gauge.yaml,target=loading_gauge.yaml \
   node /build/styles.mjs
 
 FROM nginx:1-alpine
 
 COPY proxy/proxy.conf.template /etc/nginx/templates/proxy.conf.template
+COPY proxy/manifest.json /etc/nginx/public/manifest.json
 COPY proxy/index.html /etc/nginx/public/index.html
 COPY proxy/api /etc/nginx/public/api
 COPY proxy/js /etc/nginx/public/js

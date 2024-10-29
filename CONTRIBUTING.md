@@ -28,7 +28,6 @@ signals_railway_line:
     # ...
 
     - train_protection: new
-      rank: 8
       tags:
         - { tag: 'railway:new', value: 'yes' }
 
@@ -128,6 +127,21 @@ Open a pull request where you provide details about the new railway signals. Ens
 ## I want to visualize a new track gauge on the map
 
 *To be documented...*
+
+## I want to visualize a new loading gauge on the map
+
+Edit the file [`features/loading_gauge.yaml`](https://github.com/hiddewie/OpenRailwayMap-vector/edit/master/features/loading_gauge.yaml).
+
+The file contains a list of loading gauges, each with a value (the value of the `loading_gauge` tag), a legend and a color.
+
+Add a new entry at a certain place in the list. The value is the `loading_gauge` tag value. The `legend` will be used as a description in the legend. For example:
+```yaml
+loading_gauges:
+  - { value: 'TSI_GA', legend: 'GA', color: 'blue' }
+    # ...
+```
+
+Open a pull request where you provide details about the new loading gauge. Ensure the pull request contains references to documentation and places on the map where the loading gauge exists.
 
 ## I want to improve the user interface
 

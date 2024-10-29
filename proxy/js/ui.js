@@ -9,7 +9,10 @@ const searchResults = document.getElementById('search-results');
 const configurationBackdrop = document.getElementById('configuration-backdrop');
 const backgroundSaturationControl = document.getElementById('backgroundSaturation');
 const backgroundOpacityControl = document.getElementById('backgroundOpacity');
-const backgroundRasterUrlControl = document.getElementById('backgroundRasterUrl');
+const backgroundTypeRasterControl = document.getElementById('backgroundTypeRaster');
+const backgroundTypeVectorControl = document.getElementById('backgroundTypeVector');
+const backgroundUrlControl = document.getElementById('backgroundUrl');
+const backgroundMapContainer = document.getElementById('background-map')
 const legend = document.getElementById('legend')
 const legendMapContainer = document.getElementById('legend-map')
 
@@ -124,14 +127,14 @@ function showSearchResults(results) {
     ? `
       <div class="mb-1 d-flex align-items-center">
         <span class="flex-grow-1">
-          <span class="badge badge-light">0 results</span>
+          <span class="badge rounded-pill text-bg-light">0 results</span>
         </span>
       </div>
     `
     : `
       <div class="mb-1 d-flex align-items-center">
         <span class="flex-grow-1">
-          <span class="badge badge-light">${results.length} results</span>
+          <span class="badge rounded-pill text-bg-light">${results.length} results</span>
         </span>
         <button class="btn btn-sm btn-primary" type="button" style="vertical-align: text-bottom" onclick="viewSearchResultsOnMap(${bounds})">
           <svg width="auto" height="16" viewBox="-4 0 36 36" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><path d="M14 0c7.732 0 14 5.641 14 12.6C28 23.963 14 36 14 36S0 24.064 0 12.6C0 5.641 6.268 0 14 0Z" fill="white"/><circle fill="var(--primary)" fill-rule="nonzero" cx="14" cy="14" r="7"/></g></svg>
@@ -200,7 +203,13 @@ function viewSearchResultsOnMap(bounds) {
 function showConfiguration() {
   backgroundSaturationControl.value = configuration.backgroundSaturation ?? defaultConfiguration.backgroundSaturation;
   backgroundOpacityControl.value = configuration.backgroundOpacity ?? defaultConfiguration.backgroundOpacity;
-  backgroundRasterUrlControl.value = configuration.backgroundRasterUrl ?? defaultConfiguration.backgroundRasterUrl;
+  if ((configuration.backgroundType ?? defaultConfiguration.backgroundType) === 'raster') {
+    backgroundTypeRasterControl.checked = true;
+  } else {
+    backgroundTypeVectorControl.checked = true;
+  }
+  backgroundUrlControl.value = configuration.backgroundUrl ?? defaultConfiguration.backgroundUrl;
+
   configurationBackdrop.style.display = 'block';
 }
 
@@ -261,6 +270,7 @@ const knownStyles = {
   signals: 'Train protection',
   electrification: 'Electrification',
   gauge: 'Gauge',
+  loading_gauge: 'Loading gauge',
 };
 
 function hashToObject(hash) {
@@ -314,22 +324,80 @@ function readConfiguration(localStorage) {
   }
 }
 
+function migrateConfiguration(localStorage, configuration) {
+  if (configuration.backgroundSaturation && configuration.backgroundSaturation < 0.0) {
+    console.info('Migrating background saturation from', configuration.backgroundSaturation, 'to', configuration.backgroundSaturation + 1.0)
+    configuration.backgroundSaturation += 1.0;
+    storeConfiguration(localStorage, configuration);
+  }
+
+  if (configuration.backgroundRasterUrl) {
+    console.info('Migrating background raster URL:', configuration.backgroundRasterUrl)
+    configuration.backgroundType = 'raster';
+    configuration.backgroundUrl = configuration.backgroundRasterUrl;
+    delete configuration.backgroundRasterUrl;
+    storeConfiguration(localStorage, configuration);
+  }
+
+  return configuration;
+}
+
 function storeConfiguration(localStorage, configuration) {
   localStorage.setItem(localStorageKey, JSON.stringify(configuration));
 }
 
 function updateConfiguration(name, value) {
   configuration[name] = value;
-  storeConfiguration(localStorage, configuration)
-  onStyleChange(selectedStyle);
+  storeConfiguration(localStorage, configuration);
+}
+
+function clamp(value, min, max) {
+  return Math.max(Math.min(value, max), min);
+}
+
+function buildBackgroundMapStyle() {
+  if ((configuration.backgroundType ?? defaultConfiguration.backgroundType) === 'raster') {
+    return {
+      name: 'Background map',
+      version: 8,
+      layers: [
+        {
+          id: "background-map",
+          type: "raster",
+          source: "background_map",
+        },
+      ],
+      sources: {
+        background_map: {
+          type: 'raster',
+          tiles: [
+            configuration.backgroundUrl ?? defaultConfiguration.backgroundUrl,
+          ],
+          tileSize: 256,
+        },
+      },
+    };
+  } else {
+    return configuration.backgroundUrl ?? defaultConfiguration.backgroundUrl;
+  }
+}
+
+function updateBackgroundMapStyle() {
+  backgroundMap.setStyle(buildBackgroundMapStyle());
+}
+
+function updateBackgroundMapContainer() {
+  backgroundMapContainer.style.filter = `saturate(${clamp(configuration.backgroundSaturation ?? defaultConfiguration.backgroundSaturation, 0.0, 1.0)}) opacity(${clamp(configuration.backgroundOpacity ?? defaultConfiguration.backgroundOpacity, 0.0, 1.0)})`;
 }
 
 const defaultConfiguration = {
-  backgroundSaturation: -1.0,
+  backgroundSaturation: 0.0,
   backgroundOpacity: 1.0,
-  backgroundRasterUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  backgroundType: 'raster',
+  backgroundUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
 }
 let configuration = readConfiguration(localStorage);
+configuration = migrateConfiguration(localStorage, configuration);
 
 const coordinateFactor = legendZoom => Math.pow(2, 5 - legendZoom);
 
@@ -346,17 +414,6 @@ const legendStyles = Object.fromEntries(
     .map(style => [style, `${location.origin}/style/legend-${style}.json`])
 );
 
-const transformMapStyle = (style, configuration) => {
-  const backgroundMapLayer = style.layers.find(it => it.id === 'background-map');
-  backgroundMapLayer.paint['raster-saturation'] = configuration.backgroundSaturation ?? defaultConfiguration.backgroundSaturation;
-  backgroundMapLayer.paint['raster-opacity'] = configuration.backgroundOpacity ?? defaultConfiguration.backgroundOpacity;
-
-  const backgroundMapSource = style.sources.background_map;
-  backgroundMapSource.tiles = [configuration.backgroundRasterUrl ?? defaultConfiguration.backgroundRasterUrl];
-
-  return style;
-}
-
 const legendMap = new maplibregl.Map({
   container: 'legend-map',
   zoom: 5,
@@ -366,6 +423,14 @@ const legendMap = new maplibregl.Map({
   // See https://github.com/maplibre/maplibre-gl-js/issues/3503
   maxCanvasSize: [Infinity, Infinity],
 });
+
+const backgroundMap = new maplibregl.Map({
+  container: 'background-map',
+  style: buildBackgroundMapStyle(),
+  attributionControl: false,
+  interactive: false,
+});
+updateBackgroundMapContainer();
 
 const map = new maplibregl.Map({
   container: 'map',
@@ -382,9 +447,6 @@ const onStyleChange = changedStyle => {
   // Change styles
   map.setStyle(mapStyles[changedStyle], {
     validate: false,
-    transformStyle: (previous, next) => {
-      return transformMapStyle(next, configuration);
-    },
   });
   legendMap.setStyle(legendStyles[changedStyle], {
     validate: false,
@@ -410,20 +472,20 @@ class StyleControl {
   onAdd(map) {
     this._map = map;
     this._container = createDomElement('div', 'maplibregl-ctrl maplibregl-ctrl-group maplibregl-ctrl-style');
-    const buttonGroup = createDomElement('div', 'btn-group-vertical btn-group-toggle', this._container);
+    const buttonGroup = createDomElement('div', 'btn-group-vertical', this._container);
 
     Object.entries(knownStyles).forEach(([name, styleLabel]) => {
       const id = `style-${name}`
-      const label = createDomElement('label', 'btn btn-light', buttonGroup);
-      label.htmlFor = id
-      label.innerText = styleLabel
-      const radio = createDomElement('input', '', label);
+      const radio = createDomElement('input', 'btn-check', buttonGroup);
       radio.id = id
       radio.type = 'radio'
       radio.name = 'style'
       radio.value = name
       radio.onclick = () => this.options.onStyleChange(name)
       radio.checked = (this.options.initialSelection === name)
+      const label = createDomElement('label', 'btn btn-outline-success', buttonGroup);
+      label.htmlFor = id
+      label.innerText = styleLabel
     });
 
     return this._container;
@@ -591,38 +653,41 @@ function popupContent(properties) {
       ${properties.osm_id ? `<a title="Edit" href="https://www.openstreetmap.org/edit?node=${properties.osm_id}" target="_blank">${icons.edit}</a>` : ''}
     </h6>
     <h6>
-      ${properties.reporting_marks ? `<span class="badge badge-pill badge-light">reporting marks: <span class="text-monospace">${properties.reporting_marks}</span></span>` : ''}
-      ${properties.railway_ref ? `<span class="badge badge-pill badge-light">reference: <span class="text-monospace">${properties.railway_ref}</span></span>` : ''} 
-      ${properties.ref ? `<span class="badge badge-pill badge-light">reference: <span class="text-monospace">${properties.ref}</span></span>` : ''} 
-      ${properties.uic_ref ? `<span class="badge badge-pill badge-light">UIC reference: <span class="text-monospace">${properties.uic_ref}</span></span>` : ''}
-      ${properties.position ? `<span class="badge badge-pill badge-light">position: ${properties.position}</span>` : ''}
-      ${properties.pos ? `<span class="badge badge-pill badge-light">position: ${properties.pos}</span>` : ''}
-      ${properties.operator ? `<span class="badge badge-pill badge-light">operator: ${properties.operator}</span>` : ''}
-      ${properties.track_ref ? `<span class="badge badge-pill badge-light">track: ${properties.track_ref}</span>` : ''}
-      ${properties.highspeed === true ? `<span class="badge badge-pill badge-light">high speed</span>` : ''}
-      ${properties.usage ? `<span class="badge badge-pill badge-light">usage: <span class="text-monospace">${properties.usage}</span></span>` : ''}
-      ${properties.service ? `<span class="badge badge-pill badge-light">service: <span class="text-monospace">${properties.service}</span></span>` : ''}
-      ${properties.tunnel === true ? `<span class="badge badge-pill badge-light">tunnel</span>` : ''}
-      ${properties.bridge === true ? `<span class="badge badge-pill badge-light">bridge</span>` : ''}
-      ${properties.railway_local_operated === true ? `<span class="badge badge-pill badge-light">operated locally</span>` : ''}
-      ${properties.track_class ? `<span class="badge badge-pill badge-light">track class: <span class="text-monospace">${properties.track_class}</span></span>` : ''}
-      ${properties.maxspeed ? `<span class="badge badge-pill badge-light">maximum speed: ${properties.maxspeed} km/h</span>` : ''}
-      ${properties.direction_both ? `<span class="badge badge-pill badge-light">both directions</span>` : ''}
-      ${properties.train_protection ? `<span class="badge badge-pill badge-light">train protection: <span class="text-monospace">${properties.train_protection}</span></span>` : ''}
-      ${properties.deactivated === true ? `<span class="badge badge-pill badge-light">deactivated</span>` : ''}
-      ${properties.type === 'line' ? `<span class="badge badge-pill badge-light">line signal</span>` : ''}
-      ${properties.electrification_state ? `<span class="badge badge-pill badge-light">line electrification: <span class="text-monospace">${properties.electrification_state}</span></span>` : ''}
-      ${properties.voltage ? `<span class="badge badge-pill badge-light">voltage: ${properties.voltage} V</span>` : ''}
-      ${properties.frequency ? `<span class="badge badge-pill badge-light">frequency: ${properties.frequency.toFixed(2)} Hz</span>` : ''}
-      ${properties.gauge0 ? `<span class="badge badge-pill badge-light">gauge: ${properties.gauge0}</span>` : ''}
-      ${properties.gauge1 ? `<span class="badge badge-pill badge-light">gauge: ${properties.gauge1}</span>` : ''}
-      ${properties.gauge2 ? `<span class="badge badge-pill badge-light">gauge: ${properties.gauge2}</span>` : ''}
+      ${properties.reporting_marks ? `<span class="badge rounded-pill text-bg-light">reporting marks: <span class="text-monospace">${properties.reporting_marks}</span></span>` : ''}
+      ${properties.railway_ref ? `<span class="badge rounded-pill text-bg-light">reference: <span class="text-monospace">${properties.railway_ref}</span></span>` : ''} 
+      ${properties.ref ? `<span class="badge rounded-pill text-bg-light">reference: <span class="text-monospace">${properties.ref}</span></span>` : ''} 
+      ${properties.uic_ref ? `<span class="badge rounded-pill text-bg-light">UIC reference: <span class="text-monospace">${properties.uic_ref}</span></span>` : ''}
+      ${properties.position ? `<span class="badge rounded-pill text-bg-light">position: ${properties.position}</span>` : ''}
+      ${properties.pos ? `<span class="badge rounded-pill text-bg-light">position: ${properties.pos}</span>` : ''}
+      ${properties.operator ? `<span class="badge rounded-pill text-bg-light">operator: ${properties.operator}</span>` : ''}
+      ${properties.track_ref ? `<span class="badge rounded-pill text-bg-light">track: ${properties.track_ref}</span>` : ''}
+      ${properties.highspeed === true ? `<span class="badge rounded-pill text-bg-light">high speed</span>` : ''}
+      ${properties.usage ? `<span class="badge rounded-pill text-bg-light">usage: <span class="text-monospace">${properties.usage}</span></span>` : ''}
+      ${properties.service ? `<span class="badge rounded-pill text-bg-light">service: <span class="text-monospace">${properties.service}</span></span>` : ''}
+      ${properties.tunnel === true ? `<span class="badge rounded-pill text-bg-light">tunnel</span>` : ''}
+      ${properties.bridge === true ? `<span class="badge rounded-pill text-bg-light">bridge</span>` : ''}
+      ${properties.railway_local_operated === true ? `<span class="badge rounded-pill text-bg-light">operated locally</span>` : ''}
+      ${properties.track_class ? `<span class="badge ounded-pill text-bg-light">track class: <span class="text-monospace">${properties.track_class}</span></span>` : ''}
+      ${properties.maxspeed ? `<span class="badge rounded-pill text-bg-light">maximum speed: ${properties.maxspeed} km/h</span>` : ''}
+      ${properties.direction_both ? `<span class="badge rounded-pill text-bg-light">both directions</span>` : ''}
+      ${properties.train_protection ? `<span class="badge rounded-pill text-bg-light">train protection: <span class="text-monospace">${properties.train_protection}</span></span>` : ''}
+      ${properties.deactivated === true ? `<span class="badge rounded-pill text-bg-light">deactivated</span>` : ''}
+      ${properties.type === 'line' ? `<span class="badge rounded-pill text-bg-light">line signal</span>` : ''}
+      ${properties.electrification_state ? `<span class="badge rounded-pill text-bg-light">line electrification: <span class="text-monospace">${properties.electrification_state}</span></span>` : ''}
+      ${properties.voltage ? `<span class="badge rounded-pill text-bg-light">voltage: ${properties.voltage} V</span>` : ''}
+      ${properties.frequency ? `<span class="badge rounded-pill text-bg-light">frequency: ${properties.frequency.toFixed(2)} Hz</span>` : ''}
+      ${properties.gauge0 ? `<span class="badge rounded-pill text-bg-light">gauge: ${properties.gauge0}</span>` : ''}
+      ${properties.gauge1 ? `<span class="badge rounded-pill text-bg-light">gauge: ${properties.gauge1}</span>` : ''}
+      ${properties.gauge2 ? `<span class="badge rounded-pill text-bg-light">gauge: ${properties.gauge2}</span>` : ''}
+      ${properties.loading_gauge ? `<span class="badge rounded-pill text-bg-light">loading gauge: ${properties.loading_gauge}</span>` : ''}
     </h6>
   `;
 }
 
 map.on('load', () => onMapZoom(map.getZoom()));
 map.on('zoomend', () => onMapZoom(map.getZoom()));
+map.on('move', () => backgroundMap.jumpTo({ center: map.getCenter(), zoom: map.getZoom(), bearing: map.getBearing()}));
+map.on('zoom', () => backgroundMap.jumpTo({ center: map.getCenter(), zoom: map.getZoom(), bearing: map.getBearing()}));
 
 let hoveredFeature = null
 map.on('mousemove', event => {
@@ -708,5 +773,8 @@ fetch(`${location.origin}/bounds.json`)
       throw `Invalid status code ${result.status}`
     }
   })
-  .then(result => map.setMaxBounds(result))
+  .then(result => {
+    map.setMaxBounds(result);
+    backgroundMap.jumpTo({ center: map.getCenter(), zoom: map.getZoom(), bearing: map.getBearing()});
+  })
   .catch(error => console.error('Error during fetching of import map bounds', error))

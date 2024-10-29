@@ -40,6 +40,7 @@ postgres:
         usage: string
         service: string
         highspeed: boolean
+        preferred_direction: string
         tunnel: boolean
         bridge: boolean
         ref: string
@@ -63,6 +64,7 @@ postgres:
         gauge2: string
         gaugeint2: number
         gauge_label: string
+        loading_gauge: string
         reporting_marks: string
 
     railway_line_med:
@@ -79,6 +81,7 @@ postgres:
         usage: string
         service: string
         highspeed: boolean
+        preferred_direction: string
         tunnel: boolean
         bridge: boolean
         ref: string
@@ -102,6 +105,7 @@ postgres:
         gauge2: string
         gaugeint2: number
         gauge_label: string
+        loading_gauge: string
         reporting_marks: string
 
     railway_line_high:
@@ -113,11 +117,13 @@ postgres:
       properties:
         # TODO calculate labels in frontend
         id: integer
+        way_length: number
         railway: string
         feature: string
         usage: string
         service: string
         highspeed: boolean
+        preferred_direction: string
         tunnel: boolean
         bridge: boolean
         ref: string
@@ -141,6 +147,7 @@ postgres:
         gauge2: string
         gaugeint2: number
         gauge_label: string
+        loading_gauge: string
         reporting_marks: string
 
     # --- Standard --- #
@@ -173,6 +180,7 @@ postgres:
       geometry_type: POLYGON
       properties:
         id: integer
+        feature: string
 
     standard_railway_text_stations:
       schema: public
@@ -197,9 +205,9 @@ postgres:
         id: integer
         feature: string
 
-    standard_railway_text_km:
+    railway_text_km:
       schema: public
-      table: standard_railway_text_km
+      table: railway_text_km
       srid: 3857
       geometry_column: way
       geometry_type: POINT
@@ -263,6 +271,7 @@ postgres:
       geometry_type: GEOMETRY
       properties:
         id: integer
+        feature: string
         ref: string
         name: string
 
