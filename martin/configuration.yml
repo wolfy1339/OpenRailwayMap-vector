@@ -65,6 +65,7 @@ postgres:
         gaugeint2: number
         gauge_label: string
         loading_gauge: string
+        track_class: string
         reporting_marks: string
 
     railway_line_med:
@@ -106,6 +107,7 @@ postgres:
         gaugeint2: number
         gauge_label: string
         loading_gauge: string
+        track_class: string
         reporting_marks: string
 
     railway_line_high:
@@ -148,6 +150,7 @@ postgres:
         gaugeint2: number
         gauge_label: string
         loading_gauge: string
+        track_class: string
         reporting_marks: string
 
     # --- Standard --- #
@@ -215,6 +218,7 @@ postgres:
         id: integer
         railway: string
         pos: string
+        pos_int: string
         zero: boolean
 
     standard_railway_switch_ref:
@@ -263,17 +267,7 @@ postgres:
         azimuth: number
         direction_both: boolean
 
-    signals_signal_boxes:
-      schema: public
-      table: signals_signal_boxes
-      srid: 3857
-      geometry_column: way
-      geometry_type: GEOMETRY
-      properties:
-        id: integer
-        feature: string
-        ref: string
-        name: string
+    # signals_signal_boxes, see function below
 
     # --- Electrification --- #
 
@@ -288,6 +282,17 @@ postgres:
         feature: string
         azimuth: number
         direction_both: boolean
+
+
+  functions:
+
+    # --- Signals --- #
+
+    signals_signal_boxes:
+      schema: public
+      function: signals_signal_boxes
+      minzoom: 8
+      maxzoom: 14
 
 fonts:
   - /config/fonts
