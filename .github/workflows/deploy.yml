@@ -22,7 +22,7 @@ jobs:
       # Manually write import bounds, to decouple proxy from tile generation/import
       - name: Output import bounds
         run: |
-          echo '[[-190.2,11.8], [-45.0, 83.9]]' > data/import/bounds.json
+          echo '[[-135.2,42.1], [-53.0, 60.8]]' > data/import/bounds.json
 
       #- name: Deploy
       #  env:
@@ -66,7 +66,7 @@ jobs:
       - name: Generate tiles
         env:
           TILES: ${{ matrix.tiles }}
-          BBOX: '-190.2,11.8,-45.0,83.9'
+          BBOX: '-135.2,42.1,-53.0,60.8'
         run: |
           docker compose run martin-cp
           ls -las tiles/
