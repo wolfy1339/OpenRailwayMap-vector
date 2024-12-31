@@ -138,8 +138,8 @@ local railway_line = osm2pgsql.define_table({
     { column = 'future_frequency', type = 'real' },
     { column = 'future_voltage', type = 'integer' },
     { column = 'gauges', sql_type = 'text[]' },
-    { column = 'loading_gauge', sql_type = 'text' },
-    { column = 'track_class', sql_type = 'text' },
+    { column = 'loading_gauge', type = 'text' },
+    { column = 'track_class', type = 'text' },
     { column = 'reporting_marks', sql_type = 'text[]' },
     { column = 'construction_railway', type = 'text' },
     { column = 'proposed_railway', type = 'text' },
@@ -151,6 +151,9 @@ local railway_line = osm2pgsql.define_table({
     { column = 'preserved_railway', type = 'text' },
     { column = 'train_protection', type = 'text' },
     { column = 'train_protection_rank', type = 'smallint' },
+    { column = 'operator', sql_type = 'text[]' },
+    { column = 'traffic_mode', type = 'text' },
+    { column = 'radio', type = 'text' },
   },
 })
 
@@ -217,12 +220,6 @@ local signal_columns = {
   { column = 'dominant_speed', type = 'real' },
 }
 for _, tag in ipairs(tag_functions.signal_tags) do
-  table.insert(signal_columns, { column = tag, type = 'text' })
-end
-for _, tag in ipairs(tag_functions.speed_tags) do
-  table.insert(signal_columns, { column = tag, type = 'text' })
-end
-for _, tag in ipairs(tag_functions.electrification_tags) do
   table.insert(signal_columns, { column = tag, type = 'text' })
 end
 local signals = osm2pgsql.define_table({
@@ -317,6 +314,30 @@ function electrification_state(tags)
   end
 
   return nil, nil, nil
+end
+
+-- Split a value and turn it into a raw SQL array (quoted and comma-delimited)
+function split_semicolon_to_sql_array(value)
+  local result = '{'
+
+  local first = true
+  if value then
+    for part in string.gmatch(value, '[^;]+') do
+      if part then
+
+        if first then
+          first = false
+        else
+          result = result .. ','
+        end
+
+        -- Raw SQL array syntax
+        result = result .. "\"" .. part:gsub("\"", "\\\"") .. "\""
+      end
+    end
+  end
+
+  return result .. '}'
 end
 
 -- TODO clean up unneeded tags
@@ -427,51 +448,6 @@ function osm2pgsql.process_node(object)
   end
 
   if railway_signal_values(tags.railway) then
-    local rank = (
-      (tags['railway:signal:main'] and 10000) or
-      (tags['railway:signal:combined'] and 10000) or
-      (tags['railway:signal:distant'] and 9000) or
-      (tags['railway:signal:train_protection'] and 8500) or
-      (tags['railway:signal:main_repeated'] and 8000) or
-      (tags['railway:signal:speed_limit'] and 5500) or
-      (tags['railway:signal:speed_limit_distant'] and 5000) or
-      (tags['railway:signal:minor'] and 4000) or
-      (tags['railway:signal:passing'] and 3500) or
-      (tags['railway:signal:shunting'] and 3000) or
-      (tags['railway:signal:stop'] and 1000) or
-      (tags['railway:signal:stop_demand'] and 900) or
-      (tags['railway:signal:station_distant'] and 550) or
-      (tags['railway:signal:crossing'] and 1000) or
-      (tags['railway:signal:crossing_distant'] and 500) or
-      (tags['railway:signal:ring'] and 500) or
-      (tags['railway:signal:whistle'] and 500) or
-      (tags['railway:signal:electricity'] and 500) or
-      (tags['railway:signal:departure'] and 400) or
-      (tags['railway:signal:resetting_switch'] and 300) or
-      (tags['railway:signal:resetting_switch_distant'] and 200) or
-      0
-    )
-    local deactivated = (
-      tags['railway:signal:combined:deactivated'] or
-      tags['railway:signal:main:deactivated'] or
-      tags['railway:signal:distant:deactivated'] or
-      tags['railway:signal:train_protection:deactivated'] or
-      tags['railway:signal:main_repeated:deactivated'] or
-      tags['railway:signal:minor:deactivated'] or
-      tags['railway:signal:passing:deactivated'] or
-      tags['railway:signal:shunting:deactivated'] or
-      tags['railway:signal:stop:deactivated'] or
-      tags['railway:signal:stop_demand:deactivated'] or
-      tags['railway:signal:station_distant:deactivated'] or
-      tags['railway:signal:crossing_distant:deactivated'] or
-      tags['railway:signal:crossing:deactivated'] or
-      tags['railway:signal:ring:deactivated'] or
-      tags['railway:signal:whistle:deactivated'] or
-      tags['railway:signal:departure:deactivated'] or
-      tags['railway:signal:main_repeated:deactivated'] or
-      tags['railway:signal:humping:deactivated'] or
-      tags['railway:signal:speed_limit:deactivated']
-    ) == 'yes'
     local ref_multiline, newline_count = (tags.ref or ''):gsub(' ', '\n')
 
     -- We cast the highest speed to text to make it possible to only select those speeds
@@ -483,8 +459,8 @@ function osm2pgsql.process_node(object)
     local signal = {
       way = object:as_point(),
       railway = tags.railway,
-      rank = rank,
-      deactivated = deactivated,
+      rank = tag_functions.signal_rank(tags),
+      deactivated = tag_functions.signal_deactivated(tags),
       ref = tags.ref,
       ref_multiline = ref_multiline ~= '' and ref_multiline or nil,
       signal_direction = tags['railway:signal:direction'],
@@ -494,15 +470,9 @@ function osm2pgsql.process_node(object)
     }
 
     for _, tag in ipairs(tag_functions.signal_tags) do
-      signal[tag] = tags[tag]
-    end
-    for _, tag in ipairs(tag_functions.speed_tags) do
       if tag ~= 'railway:signal:speed_limit:speed' and tag ~= 'railway:signal:speed_limit_distant:speed' then
         signal[tag] = tags[tag]
       end
-    end
-    for _, tag in ipairs(tag_functions.electrification_tags) do
-      signal[tag] = tags[tag]
     end
 
     signals:insert(signal)
@@ -539,28 +509,6 @@ function osm2pgsql.process_way(object)
 
     local current_electrification_state, voltage, frequency, future_voltage, future_frequency = electrification_state(tags)
 
-    local gauges = {}
-    local gauge_tag = tags['gauge'] or tags['construction:gauge']
-    if gauge_tag then
-      for gauge in string.gmatch(gauge_tag, '[^;]+') do
-        if gauge then
-          -- Raw SQL array syntax
-          table.insert(gauges, "\"" .. gauge:gsub("\"", "\\\"") .. "\"")
-        end
-      end
-    end
-
-    local reporting_marks = {}
-    local reporting_marks_tag = tags['reporting_marks']
-    if reporting_marks_tag then
-      for reporting_mark in string.gmatch(reporting_marks_tag, '[^;]+') do
-        if reporting_mark then
-          -- Raw SQL array syntax
-          table.insert(reporting_marks, "\"" .. reporting_mark:gsub("\"", "\\\"") .. "\"")
-        end
-      end
-    end
-
     local preferred_direction = tags['railway:preferred_direction']
     local dominant_speed, speed_label = dominant_speed_label(preferred_direction, tags['maxspeed'], tags['maxspeed:forward'], tags['maxspeed:backward'])
 
@@ -590,10 +538,10 @@ function osm2pgsql.process_way(object)
       voltage = voltage,
       future_frequency = future_frequency,
       future_voltage = future_voltage,
-      gauges = '{' .. table.concat(gauges, ',') .. '}',
+      gauges = split_semicolon_to_sql_array(tags['gauge'] or tags['construction:gauge']),
       loading_gauge = tags['loading_gauge'],
       track_class = tags['railway:track_class'],
-      reporting_marks = '{' .. table.concat(reporting_marks, ',') .. '}',
+      reporting_marks = split_semicolon_to_sql_array(tags['reporting_marks']),
       construction_railway = tags['construction:railway'],
       proposed_railway = tags['proposed:railway'],
       disused_railway = tags['disused:railway'],
@@ -604,6 +552,9 @@ function osm2pgsql.process_way(object)
       preserved_railway = tags['preserved:railway'],
       train_protection = railway_train_protection,
       train_protection_rank = railway_train_protection_rank,
+      operator = split_semicolon_to_sql_array(tags['operator']),
+      traffic_mode = tags['railway:traffic_mode'],
+      radio = tags['railway:radio'],
     })
   end
 

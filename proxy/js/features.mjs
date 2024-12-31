@@ -2,12 +2,14 @@ import fs from 'fs'
 import yaml from 'yaml'
 
 const signals_railway_line = yaml.parse(fs.readFileSync('features/train_protection.yaml', 'utf8'))
-const speed_railway_signals = yaml.parse(fs.readFileSync('features/speed_railway_signals.yaml', 'utf8'))
-const signals_railway_signals = yaml.parse(fs.readFileSync('features/signals_railway_signals.yaml', 'utf8'))
-const electrification_signals = yaml.parse(fs.readFileSync('features/electrification_signals.yaml', 'utf8'))
+const all_signals = yaml.parse(fs.readFileSync('features/signals_railway_signals.yaml', 'utf8'))
 const loading_gauges = yaml.parse(fs.readFileSync('features/loading_gauge.yaml', 'utf8'))
 const poi = yaml.parse(fs.readFileSync('features/poi.yaml', 'utf8'))
 const stations = yaml.parse(fs.readFileSync('features/stations.yaml', 'utf8'))
+
+const speed_railway_signals = all_signals.features.filter(feature => feature.tags.find(tag => tag.tag === 'railway:signal:speed_limit' || tag.tag === 'railway:signal:speed_limit_distant'))
+const signals_railway_signals = all_signals.features.filter(feature => !feature.tags.find(tag => tag.tag === 'railway:signal:speed_limit' || tag.tag === 'railway:signal:speed_limit_distant' || tag.tag === 'railway:signal:electricity'))
+const electrification_signals = all_signals.features.filter(feature => feature.tags.find(tag => tag.tag === 'railway:signal:electricity'))
 
 // TODO add links to documentation
 
@@ -24,28 +26,15 @@ const generateSignalFeatures = features =>
       ]
     ].concat(
       feature.icon.match
-        // TODO dynamic match for speed signals, need difference between feature and icon
-        ? feature.icon.cases.map(iconCase => [iconCase.example ?? iconCase.value, {
+        ? feature.icon.cases.map(iconCase => [iconCase.value, {
           country: feature.country,
-          name: iconCase.description,
+          name: `${feature.description}${iconCase.description ? ` (${iconCase.description})` : ''}`,
         }])
         : []
     ),
   ));
 
-const trainProtection = signals_railway_line.train_protections.map(feature => ({
-  feature: feature.train_protection,
-  description: feature.legend,
-}));
-
-const loadingGauges = loading_gauges.loading_gauges.map(feature => ({
-  feature: feature.value,
-  description: feature.legend,
-}));
-
 // TODO move icon SVGs to proxy
-// TODO lookup train protection name
-// TODO lookup loading gauge
 const railwayLineFeatures = {
   labelProperty: 'standard_label',
   features: {
@@ -102,32 +91,95 @@ const railwayLineFeatures = {
       type: 'line',
     },
   },
-  // TODO formatting / lookup table of values
   properties: {
     // TODO replace railway with `state`
-    railway: 'Railway',
-    usage: 'Usage',
-    service: 'Service',
-    highspeed: 'Highspeed',
-    preferred_direction: 'Preferred direction',
-    tunnel: 'Tunnel',
-    bridge: 'Bridge',
-    ref: 'Reference',
-    track_ref: 'Track',
-    speed_label: 'Speed',
-    train_protection: 'Train protection',
-    electrification_state: 'Electrification',
-    // TODO format with 2 digits and Hz
-    frequency: 'Frequency',
-    // TODO format with V
-    voltage: 'Voltage',
-    future_frequency: 'Future frequency',
-    future_voltage: 'Future voltage',
-    gauge_label: 'Gauge',
-    loading_gauge: 'Loading gauge',
-    track_class: 'Track class',
-    reporting_marks: 'Reporting marks',
-    // TODO import operator
+    railway: {
+      name: 'Railway',
+    },
+    usage: {
+      name: 'Usage',
+    },
+    service: {
+      name: 'Service',
+    },
+    highspeed: {
+      name: 'Highspeed',
+    },
+    preferred_direction: {
+      name: 'Preferred direction',
+    },
+    tunnel: {
+      name: 'Tunnel',
+    },
+    bridge: {
+      name: 'Bridge',
+    },
+    ref: {
+      name: 'Reference',
+    },
+    track_ref: {
+      name: 'Track',
+    },
+    speed_label: {
+      name: 'Speed',
+    },
+    train_protection: {
+      name: 'Train protection',
+      format: {
+        lookup: 'train_protection',
+      }
+    },
+    electrification_state: {
+      name: 'Electrification',
+    },
+    frequency: {
+      name: 'Frequency',
+      format: {
+        template: '%.2d Hz',
+      },
+    },
+    voltage: {
+      name: 'Voltage',
+      format: {
+        template: '%d V',
+      },
+    },
+    future_frequency: {
+      name: 'Future frequency',
+      format: {
+        template: '%.2d Hz',
+      },
+    },
+    future_voltage: {
+      name: 'Future voltage',
+      format: {
+        template: '%d V',
+      },
+    },
+    gauge_label: {
+      name: 'Gauge',
+    },
+    loading_gauge: {
+      name: 'Loading gauge',
+      format: {
+        lookup: 'loading_gauge',
+      },
+    },
+    track_class: {
+      name: 'Track class',
+    },
+    reporting_marks: {
+      name: 'Reporting marks',
+    },
+    operator: {
+      name: 'Operator',
+    },
+    traffic_mode: {
+      name: 'Traffic mode',
+    },
+    radio: {
+      name: 'Radio',
+    },
   },
 };
 
@@ -139,14 +191,18 @@ const stationFeatures = {
     stations.features.map(feature => [feature.feature, {name: feature.description}])
   ),
   properties: {
-    station: 'Type',
-    label: 'Reference',
-    // TODO Add UIC ref
+    station: {
+      name: 'Type',
+    },
+    label: {
+      name: 'Reference',
+    },
+    uic_ref: {
+      name: 'UIC reference',
+    },
   },
 }
 
-// TODO add properties for use in labels
-// TODO add name / label property of feature
 // TODO move examples here
 // TODO add icon
 const features = {
@@ -156,6 +212,7 @@ const features = {
   'standard_railway_text_stations_low-standard_railway_text_stations_low': stationFeatures,
   'standard_railway_text_stations_med-standard_railway_text_stations_med': stationFeatures,
   'openrailwaymap_standard-standard_railway_text_stations': stationFeatures,
+  'openrailwaymap_standard-standard_railway_grouped_stations': stationFeatures,
   'openrailwaymap_standard-standard_railway_turntables': {
     features: {
       turntable: {
@@ -169,12 +226,13 @@ const features = {
     },
   },
   'openrailwaymap_standard-standard_railway_symbols': {
+    labelProperty: 'feature',
     features: Object.fromEntries(
       poi.features.flatMap(feature =>
         [
           [feature.feature, {name: feature.description}]
         ].concat(
-          (feature.variants || []).map(variant => [variant.feature, {name: variant.description}])
+          (feature.variants || []).map(variant => [variant.feature, {name: `${feature.description}${variant.description ? ` (${variant.description})` : ''}`}])
         ))
     ),
   },
@@ -192,7 +250,9 @@ const features = {
       },
     },
     properties: {
-      pos: 'Position',
+      pos: {
+        name: 'Position',
+      },
     },
   },
   'openrailwaymap_standard-standard_railway_switch_ref': {
@@ -206,26 +266,83 @@ const features = {
       }
     },
     properties: {
-      railway_local_operated: 'Operated locally',
+      railway_local_operated: {
+        name: 'Operated locally',
+      },
     },
   },
   'openrailwaymap_speed-speed_railway_signals': {
-    features: generateSignalFeatures(speed_railway_signals.features),
+    featureProperty: 'feature0',
+    features: generateSignalFeatures(speed_railway_signals),
     properties: {
-      direction_both: 'both directions',
-      ref: 'Reference',
-      type: 'Type',
-      // TODO add deactivated
-      // TODO add speed
+      feature1: {
+        name: 'Secondary signal',
+        format: {
+          // Recursive feature lookup
+          lookup: 'openrailwaymap_speed-speed_railway_signals',
+        },
+      },
+      ref: {
+        name: 'Reference',
+      },
+      type: {
+        name: 'Type',
+      },
+      deactivated: {
+        name: 'Deactivated',
+      },
+      speed: {
+        name: 'Speed limit',
+      },
+      direction_both: {
+        name: 'both directions',
+      },
     },
   },
   'openrailwaymap_signals-signals_railway_signals': {
-    features: generateSignalFeatures(signals_railway_signals.features),
+    featureProperty: 'feature0',
+    features: generateSignalFeatures(signals_railway_signals),
     properties: {
-      direction_both: 'both directions',
-      ref: 'Reference',
-      type: 'Type',
-      deactivated: 'Deactivated',
+      feature1: {
+        name: 'Secondary signal',
+        format: {
+          // Recursive feature lookup
+          lookup: 'openrailwaymap_signals-signals_railway_signals',
+        },
+      },
+      feature2: {
+        name: 'Tertiary signal',
+        format: {
+          // Recursive feature lookup
+          lookup: 'openrailwaymap_signals-signals_railway_signals',
+        },
+      },
+      feature3: {
+        name: 'Quaternary signal',
+        format: {
+          // Recursive feature lookup
+          lookup: 'openrailwaymap_signals-signals_railway_signals',
+        },
+      },
+      feature4: {
+        name: 'Quinary signal',
+        format: {
+          // Recursive feature lookup
+          lookup: 'openrailwaymap_signals-signals_railway_signals',
+        },
+      },
+      ref: {
+        name: 'Reference',
+      },
+      type: {
+        name: 'Type',
+      },
+      deactivated: {
+        name: 'Deactivated',
+      },
+      direction_both: {
+        name: 'both directions',
+      },
     },
   },
   'openrailwaymap_signals-signals_signal_boxes': {
@@ -242,19 +359,74 @@ const features = {
       }
     },
     properties: {
-      ref: 'Reference',
+      ref: {
+        name: 'Reference',
+      },
     },
   },
   'openrailwaymap_electrification-electrification_signals': {
-    features: generateSignalFeatures(electrification_signals.features),
+    featureProperty: 'feature',
+    features: generateSignalFeatures(electrification_signals),
     properties: {
-      direction_both: 'both directions',
-      ref: 'Reference',
-      type: 'Type',
-      // TODO add deactivated
-      // TODO add voltage
-      // TODO add frequency
+      direction_both: {
+        name: 'both directions',
+      },
+      ref: {
+        name: 'Reference',
+      },
+      type: {
+        name: 'Type',
+      },
+      deactivated: {
+        name: 'Deactivated',
+      },
+      frequency: {
+        name: 'Frequency',
+        format: {
+          template: '%.2d Hz',
+        },
+      },
+      voltage: {
+        name: 'Voltage',
+        format: {
+          template: '%d V',
+        },
+      },
     },
+  },
+
+  // Search results
+
+  search: {
+    labelProperty: 'label',
+    features: [],
+    properties: {
+      name: {
+        name: 'Name',
+      },
+      railway: {
+        name: 'Railway',
+      },
+    },
+  },
+
+  // Features not part of a data source but for lookups
+
+  train_protection: {
+    features: Object.fromEntries(signals_railway_line.train_protections.map(feature => [
+      feature.train_protection,
+      {
+        name: feature.legend,
+      },
+    ])),
+  },
+  loading_gauge: {
+    features: Object.fromEntries(loading_gauges.loading_gauges.map(feature => [
+      feature.value,
+      {
+        name: feature.legend,
+      },
+    ])),
   },
 };
 

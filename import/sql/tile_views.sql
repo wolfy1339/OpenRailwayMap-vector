@@ -67,7 +67,10 @@ CREATE OR REPLACE VIEW railway_line_high AS
         railway_to_int(gauge2) AS gaugeint2,
         gauge2,
         gauge_label,
-        loading_gauge
+        loading_gauge,
+        array_to_string(operator, ', ') as operator,
+        traffic_mode,
+        radio
     FROM
         (SELECT
              id,
@@ -111,7 +114,10 @@ CREATE OR REPLACE VIEW railway_line_high AS
              gauges[2] AS gauge1,
              gauges[3] AS gauge2,
              (select string_agg(gauge, ' | ') from unnest(gauges) as gauge where gauge ~ '^[0-9]+$') as gauge_label,
-             loading_gauge
+             loading_gauge,
+             operator,
+             traffic_mode,
+             radio
          FROM railway_line
          WHERE railway IN ('rail', 'tram', 'light_rail', 'subway', 'narrow_gauge', 'disused', 'abandoned', 'razed', 'construction', 'proposed', 'preserved')
         ) AS r
@@ -198,8 +204,9 @@ CREATE OR REPLACE VIEW standard_railway_text_stations_low AS
   SELECT
     id,
     osm_id,
-    way,
-    railway_ref as label
+    center as way,
+    railway_ref as label,
+    uic_ref
   FROM stations_with_route_counts
   WHERE
     railway = 'station'
@@ -212,8 +219,9 @@ CREATE OR REPLACE VIEW standard_railway_text_stations_med AS
   SELECT
     id,
     osm_id,
-    way,
-    railway_ref as label
+    center as way,
+    railway_ref as label,
+    uic_ref
   FROM stations_with_route_counts
   WHERE
     railway = 'station'
@@ -225,7 +233,7 @@ CREATE OR REPLACE VIEW standard_railway_text_stations AS
   SELECT
     id,
     osm_id,
-    way,
+    center as way,
     railway,
     station,
     railway_ref as label,
@@ -244,22 +252,26 @@ CREATE OR REPLACE VIEW standard_railway_text_stations AS
       WHEN railway = 'site' THEN 600
       WHEN railway = 'crossover' THEN 700
       ELSE 50
-    END AS rank
-  FROM
-    (SELECT
-       id,
-       osm_id,
-       way,
-       railway,
-       route_count,
-       station,
-       railway_ref,
-       name
-     FROM stations_with_route_counts
-     WHERE railway IN ('station', 'halt', 'service_station', 'yard', 'junction', 'spur_junction', 'crossover', 'site')
-       AND name IS NOT NULL
-    ) AS r
+    END AS rank,
+    count,
+    uic_ref
+  FROM stations_with_route_counts
+  WHERE railway IN ('station', 'halt', 'service_station', 'yard', 'junction', 'spur_junction', 'crossover', 'site', 'tram_stop')
+    AND name IS NOT NULL
   ORDER by rank DESC NULLS LAST, route_count DESC NULLS LAST;
+
+CREATE OR REPLACE VIEW standard_railway_grouped_stations AS
+  SELECT
+    id,
+    osm_id,
+    buffered as way,
+    railway,
+    station,
+    railway_ref as label,
+    name,
+    uic_ref
+  FROM stations_with_route_counts
+  WHERE railway IN ('station', 'halt', 'service_station', 'yard', 'junction', 'spur_junction', 'crossover', 'site', 'tram_stop');
 
 CREATE OR REPLACE VIEW standard_railway_symbols AS
   SELECT
@@ -318,15 +330,15 @@ CREATE OR REPLACE VIEW railway_text_km AS
     pos,
     (railway_pos_decimal(pos) = '0') as zero,
     railway_pos_round(pos, 0)::text as pos_int
-  FROM
-    (SELECT
-       id,
-       osm_id,
-       way,
-       railway,
-       COALESCE(railway_position, railway_pos_round(railway_position_exact, 1)::text) AS pos
-     FROM railway_positions
-    ) AS r
+  FROM (
+    SELECT
+      id,
+      osm_id,
+      way,
+      railway,
+      COALESCE(railway_position, railway_pos_round(railway_position_exact, 1)::text) AS pos
+      FROM railway_positions
+  ) AS r
   WHERE pos IS NOT NULL
   ORDER by zero;
 
@@ -349,17 +361,17 @@ CREATE OR REPLACE VIEW speed_railway_signals AS
     id,
     osm_id,
     way,
-    speed_feature as feature,
-    speed_feature_type as type,
+    features[1] as feature0,
+    features[2] as feature1,
+    type,
     azimuth,
     (signal_direction = 'both') as direction_both,
-    ref
-  FROM signals_with_azimuth
-  WHERE railway = 'signal'
-    AND speed_feature IS NOT NULL
+    ref,
+    deactivated,
+    dominant_speed as speed
+  FROM speed_railway_signal_features
   ORDER BY
-    -- distant signals are less important, signals for slower speeds are more important
-    ("railway:signal:speed_limit" IS NOT NULL) DESC NULLS FIRST,
+    rank NULLS FIRST,
     dominant_speed DESC NULLS FIRST;
 
 
@@ -395,20 +407,43 @@ CREATE OR REPLACE FUNCTION signals_signal_boxes(z integer, x integer, y integer)
     WHERE way IS NOT NULL
   );
 
+-- Function metadata
+DO $do$ BEGIN
+  EXECUTE 'COMMENT ON FUNCTION signals_signal_boxes IS $tj$' || $$
+  {
+    "vector_layers": [
+      {
+        "id": "signals_signal_boxes",
+        "fields": {
+          "id": "integer",
+          "osm_id": "integer",
+          "feature": "string",
+          "ref": "string",
+          "name": "string"
+        }
+      }
+    ]
+  }
+  $$::json || '$tj$';
+END $do$;
+
 CREATE OR REPLACE VIEW signals_railway_signals AS
   SELECT
     id,
     osm_id,
     way,
+    features[1] as feature0,
+    features[2] as feature1,
+    features[3] as feature2,
+    features[4] as feature3,
+    features[5] as feature4,
     railway,
     ref,
     ref_multiline,
     deactivated,
-    signal_feature as feature,
     azimuth,
     (signal_direction = 'both') as direction_both
-  FROM signals_with_azimuth
-  WHERE signal_feature IS NOT NULL
+  FROM signals_railway_signal_features
   ORDER BY rank NULLS FIRST;
 
 --- Electrification ---
@@ -418,11 +453,12 @@ CREATE OR REPLACE VIEW electrification_signals AS
     id,
     osm_id,
     way,
-    electrification_feature as feature,
+    feature_electricity as feature,
     azimuth,
     (signal_direction = 'both') as direction_both,
-    ref
-  FROM signals_with_azimuth
-  WHERE
-    railway = 'signal'
-    AND electrification_feature IS NOT NULL;
+    ref,
+    deactivated,
+    voltage,
+    frequency
+  FROM electricity_railway_signal_features
+  ORDER BY rank NULLS FIRST;

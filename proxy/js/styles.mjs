@@ -2,13 +2,15 @@ import fs from 'fs'
 import yaml from 'yaml'
 
 const signals_railway_line = yaml.parse(fs.readFileSync('features/train_protection.yaml', 'utf8'))
-const speed_railway_signals = yaml.parse(fs.readFileSync('features/speed_railway_signals.yaml', 'utf8'))
-const signals_railway_signals = yaml.parse(fs.readFileSync('features/signals_railway_signals.yaml', 'utf8'))
-const electrification_signals = yaml.parse(fs.readFileSync('features/electrification_signals.yaml', 'utf8'))
+const all_signals = yaml.parse(fs.readFileSync('features/signals_railway_signals.yaml', 'utf8'))
 const loading_gauges = yaml.parse(fs.readFileSync('features/loading_gauge.yaml', 'utf8'))
 const track_classes = yaml.parse(fs.readFileSync('features/track_class.yaml', 'utf8'))
 const poi = yaml.parse(fs.readFileSync('features/poi.yaml', 'utf8'))
 const stations = yaml.parse(fs.readFileSync('features/stations.yaml', 'utf8'))
+
+const speed_railway_signals = all_signals.features.filter(feature => feature.tags.find(tag => tag.tag === 'railway:signal:speed_limit' || tag.tag === 'railway:signal:speed_limit_distant'))
+const signals_railway_signals = all_signals.features.filter(feature => !feature.tags.find(tag => tag.tag === 'railway:signal:speed_limit' || tag.tag === 'railway:signal:speed_limit_distant' || tag.tag === 'railway:signal:electricity'))
+const electrification_signals = all_signals.features.filter(feature => feature.tags.find(tag => tag.tag === 'railway:signal:electricity'))
 
 const origin = `${process.env.PUBLIC_PROTOCOL}://${process.env.PUBLIC_HOST}`
 
@@ -768,7 +770,7 @@ const endHue = 284;
 
 const speedColor = theme => ['case',
   ['boolean', ['feature-state', 'hover'], false], ['case',
-    ['all', ['>=', ['get', 'maxspeed'], 260], ['<=', ['get', 'maxspeed'], 300]], colors[theme].hover.alternative,
+    ['all', ['!=', ['get', 'maxspeed'], null],  ['>=', ['get', 'maxspeed'], 260], ['<=', ['get', 'maxspeed'], 300]], colors[theme].hover.alternative,
     colors[theme].hover.main,
   ],
   ['==', ['get', 'maxspeed'], null], 'gray',
@@ -1075,13 +1077,14 @@ const loadingGaugeCasingPaint = theme => ({
   'line-width': railwayLineWidth,
   'line-gap-width': 0.75,
 });
+const loadingGaugeFillColor = ['match', ['get', 'loading_gauge'],
+  ...loading_gauges.loading_gauges.flatMap(loading_gauge =>
+    [loading_gauge.value, loading_gauge.color]
+  ),
+  'gray',
+];
 const loadingGaugeFillPaint = (theme, dashArray) => ({
-  'line-color': ['match', ['get', 'loading_gauge'],
-    ...loading_gauges.loading_gauges.flatMap(loading_gauge =>
-      [loading_gauge.value, loading_gauge.color]
-    ),
-    'gray',
-  ],
+  'line-color': loadingGaugeFillColor,
   'line-width': railwayLineWidth,
   'line-dasharray': dashArray,
 });
@@ -1095,13 +1098,14 @@ const trackClassCasingPaint = theme => ({
   'line-width': railwayLineWidth,
   'line-gap-width': 0.75,
 });
+const trackClassFillColor = ['match', ['get', 'track_class'],
+  ...track_classes.track_classes.flatMap(track_class =>
+    [track_class.value, track_class.color]
+  ),
+  'gray',
+];
 const trackClassFillPaint = (theme, dashArray) => ({
-  'line-color': ['match', ['get', 'track_class'],
-    ...track_classes.track_classes.flatMap(track_class =>
-      [track_class.value, track_class.color]
-    ),
-    'gray',
-  ],
+  'line-color': trackClassFillColor,
   'line-width': railwayLineWidth,
   'line-dasharray': dashArray,
 });
@@ -1382,6 +1386,25 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
         'text-size': 11,
         'text-padding': 10,
         'text-max-width': 5,
+      },
+    },
+    {
+      id: 'railway_grouped_stations',
+      type: 'fill',
+      minzoom: 13,
+      source: 'openrailwaymap_standard',
+      'source-layer': 'standard_railway_grouped_stations',
+      paint: {
+        'fill-color': ['case',
+          ['==', ['get', 'railway'], 'tram_stop'], colors[theme].styles.standard.tram,
+          ['==', ['get', 'station'], 'light_rail'], colors[theme].styles.standard.light_rail,
+          ['==', ['get', 'station'], 'subway'], colors[theme].styles.standard.subway,
+          colors[theme].styles.standard.main,
+        ],
+        'fill-opacity': ['case',
+          ['boolean', ['feature-state', 'hover'], false], 0.3,
+          0.2,
+        ],
       },
     },
     {
@@ -2170,6 +2193,7 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
             ['==', ['get', 'railway'], 'station'],
             ['==', ['get', 'railway'], 'halt'],
           ],
+          ['!=', ['get', 'railway'], 'tram_stop'],
           ['!=', ['get', 'station'], 'funicular'],
         ],
         10,
@@ -2177,23 +2201,16 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
           ['!=', ['get', 'railway'], 'tram_stop'],
           ['!=', ['get', 'station'], 'funicular'],
         ],
-        13,
-        ['!=', ['get', 'station'], 'funicular'],
       ],
       paint: {
         'text-color': ['case',
           ['==', ['get', 'railway'], 'yard'], colors[theme].styles.standard.yardText,
-          ['==', ['get', 'railway'], 'tram_stop'], colors[theme].styles.standard.tramStopText,
           ['==', ['get', 'railway'], 'station'], colors[theme].styles.standard.stationsText,
           ['==', ['get', 'railway'], 'halt'], colors[theme].styles.standard.stationsText,
           colors[theme].styles.standard.defaultText,
         ],
         'text-halo-color': ['case',
           ['boolean', ['feature-state', 'hover'], false], colors[theme].hover.textHalo,
-          // ['==', ['get', 'railway'], 'yard'], colors[theme].halo,
-          // ['==', ['get', 'railway'], 'tram_stop'], colors[theme].halo,
-          // ['==', ['get', 'railway'], 'station'], colors[theme].halo,
-          // ['==', ['get', 'railway'], 'halt'], colors[theme].halo,
           colors[theme].halo,
         ],
         'text-halo-width': 1.5,
@@ -2204,17 +2221,51 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
           ['get', 'label'],
           10,
           ['get', 'name'],
+          15,
+          ['case',
+            ['>', ['coalesce', ['get', 'count'], 0], 1], ['concat', ['get', 'name'], ' (', ['get', 'count'], ')'],
+            ['get', 'name'],
+          ],
         ],
         // TODO light rail / subway oblique font
         'text-font': ['Noto Sans Bold'],
-        // TODO text-variable-anchor-offset
+        'text-variable-anchor': ['center', 'top', 'bottom', 'left', 'right'],
         'text-size': 11,
         'text-padding': 10,
         'text-max-width': 5,
-        'text-offset': ['case',
-          ['==', ['get', 'railway'], 'tram_stop'], ['literal', [0, 1]],
-          ['literal', [0, 0]]
+      },
+    },
+    {
+      id: 'railway_tram_stations',
+      type: 'symbol',
+      minzoom: 13,
+      source: 'openrailwaymap_standard',
+      'source-layer': 'standard_railway_text_stations',
+      filter: ['==', ['get', 'railway'], 'tram_stop'],
+      paint: {
+        'text-color': colors[theme].styles.standard.tramStopText,
+        'text-halo-color': ['case',
+          ['boolean', ['feature-state', 'hover'], false], colors[theme].hover.textHalo,
+          colors[theme].halo,
         ],
+        'text-halo-width': 1.5,
+      },
+      layout: {
+        'symbol-z-order': 'source',
+        'text-field': ['step', ['zoom'],
+          ['get', 'name'],
+          15,
+          ['case',
+            ['>', ['coalesce', ['get', 'count'], 0], 1], ['concat', ['get', 'name'], ' (', ['get', 'count'], ')'],
+            ['get', 'name'],
+          ],
+        ],
+        // TODO light rail / subway oblique font
+        'text-font': ['Noto Sans Bold'],
+        'text-size': 11,
+        'text-padding': 10,
+        'text-max-width': 5,
+        'text-variable-anchor': ['top', 'bottom'],
       },
     },
     searchResults,
@@ -2293,13 +2344,13 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
       'source-layer': 'speed_railway_signals',
       filter: ['step', ['zoom'],
         ['all',
-          ['!=', ['get', 'feature'], null],
+          ['!=', ['get', 'feature0'], null],
           ['!=', ['get', 'azimuth'], null],
           ['==', ['get', 'type'], 'line'],
         ],
         14,
         ['all',
-          ['!=', ['get', 'feature'], null],
+          ['!=', ['get', 'feature0'], null],
           ['!=', ['get', 'azimuth'], null],
           ['any',
             ['==', ['get', 'type'], 'line'],
@@ -2308,7 +2359,7 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
         ],
         16,
         ['all',
-          ['!=', ['get', 'feature'], null],
+          ['!=', ['get', 'feature0'], null],
           ['!=', ['get', 'azimuth'], null],
         ],
       ],
@@ -2324,62 +2375,87 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
       layout: {
         'icon-overlap': 'always',
         'icon-image': ['case',
-          ['get', 'direction_both'], 'sdf:general/signal-direction-both',
+          ['coalesce', ['get', 'direction_both'], false], 'sdf:general/signal-direction-both',
           'sdf:general/signal-direction',
         ],
         'icon-anchor': ['case',
-          ['get', 'direction_both'], 'center',
+          ['coalesce', ['get', 'direction_both'], false], 'center',
           'top',
         ],
         'icon-rotate': ['get', 'azimuth'],
       },
     },
-    ...imageLayerWithOutline(
-      theme,
-      'speed_railway_signals',
-      ['get', 'feature'],
-      {
-        type: 'symbol',
-        source: 'openrailwaymap_speed',
-        minzoom: 13,
-        'source-layer': 'speed_railway_signals',
-        filter: ['step', ['zoom'],
-          ['all',
-            ['!=', ['get', 'feature'], null],
-            ['==', ['get', 'type'], 'line'],
-          ],
-          14,
-          ['all',
-            ['!=', ['get', 'feature'], null],
-            ['any',
+    ...[0, 1].flatMap(featureIndex =>
+      imageLayerWithOutline(
+        theme,
+        `speed_railway_signals_${featureIndex}`,
+        ['get', `feature${featureIndex}`],
+        {
+          type: 'symbol',
+          minzoom: 13,
+          source: 'openrailwaymap_speed',
+          'source-layer': 'speed_railway_signals',
+          filter: ['step', ['zoom'],
+            ['all',
+              ['!=', ['get', `feature${featureIndex}`], null],
               ['==', ['get', 'type'], 'line'],
-              ['==', ['get', 'type'], 'tram'],
-            ]
+            ],
+            14,
+            ['all',
+              ['!=', ['get', `feature${featureIndex}`], null],
+              ['any',
+                ['==', ['get', 'type'], 'line'],
+                ['==', ['get', 'type'], 'tram'],
+              ]
+            ],
+            16,
+            ['!=', ['get', `feature${featureIndex}`], null],
           ],
-          16,
-          ['!=', ['get', 'feature'], null],
-        ],
-        paint: {
-          'text-color': colors[theme].text.main,
-          'text-halo-color': ['case',
-            ['boolean', ['feature-state', 'hover'], false], colors[theme].hover.textHalo,
-            colors[theme].halo
-          ],
-          'text-halo-width': 1.5,
-          'text-halo-blur': 1,
+          layout: {
+            'symbol-z-order': 'source',
+            'icon-overlap': 'always',
+            'icon-offset': [0, -20 * featureIndex],
+          },
         },
-        layout: {
-          'symbol-z-order': 'source',
-          'icon-overlap': 'always',
-          'text-field': '{ref}',
-          'text-font': ['Noto Sans Medium'],
-          'text-size': 9,
-          'text-optional': true,
-          'text-anchor': 'top',
-          'text-offset': ['literal', [0, 1.5]],
-        },
-      },
+      )
     ),
+    {
+      id: 'speed_railway_signals_deactivated',
+      type: 'symbol',
+      minzoom: 13,
+      source: 'openrailwaymap_speed',
+      'source-layer': 'speed_railway_signals',
+      filter: ['get', 'deactivated'],
+      layout: {
+        'symbol-z-order': 'source',
+        'icon-overlap': 'always',
+        'icon-image': 'general/signal-deactivated',
+      }
+    },
+    {
+      id: `speed_railway_signals_text`,
+      type: 'symbol',
+      minzoom: 16,
+      source: 'openrailwaymap_speed',
+      'source-layer': 'speed_railway_signals',
+      filter: ['!=', ['get', `ref`], null],
+      paint: {
+        'text-color': colors[theme].text.main,
+        'text-halo-color': ['case',
+          ['boolean', ['feature-state', 'hover'], false], colors[theme].hover.textHalo,
+          colors[theme].halo
+        ],
+        'text-halo-width': 1.5,
+        'text-halo-blur': 1,
+      },
+      layout: {
+        'text-field': '{ref}',
+        'text-font': ['Noto Sans Medium'],
+        'text-size': 9,
+        'text-anchor': 'top',
+        'text-offset': [0, 1.5],
+      },
+    },
     railwayKmText(theme),
     {
       id: 'speed_railway_line_text',
@@ -2511,7 +2587,7 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
         ['==', ['get', 'preferred_direction'], 'backward'],
         ['==', ['get', 'preferred_direction'], 'both'],
       ],
-      trainProtectionColor,
+      trainProtectionColor(theme),
     ),
     {
       id: 'signal_boxes_point',
@@ -2571,7 +2647,7 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
       'source-layer': 'signals_railway_signals',
       filter: ['all',
         ['!=', ['get', 'azimuth'], null],
-        ['!=', ['get', 'feature'], ''],
+        ['!=', ['get', 'feature0'], ''],
       ],
       paint: {
         'icon-color': colors[theme].signals.direction,
@@ -2585,77 +2661,99 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
       layout: {
         'icon-overlap': 'always',
         'icon-image': ['case',
-          ['get', 'direction_both'], 'sdf:general/signal-direction-both',
+          ['coalesce', ['get', 'direction_both'], false], 'sdf:general/signal-direction-both',
           'sdf:general/signal-direction',
         ],
         'icon-anchor': ['case',
-          ['get', 'direction_both'], 'center',
+          ['coalesce', ['get', 'direction_both'], false], 'center',
           'top',
         ],
         'icon-rotate': ['get', 'azimuth'],
       },
     },
-    ...imageLayerWithOutline(
-      theme,
-      'railway_signals_medium',
-      ['case',
-        ['==', ['slice', ['get', 'feature'], 0, 20], 'de/blockkennzeichen-'], 'de/blockkennzeichen',
-        ['get', 'feature'],
+    // Show at most 2 combined features
+    ...[0, 1].flatMap(featureIndex =>
+      imageLayerWithOutline(
+        theme,
+        `railway_signals_medium_${featureIndex}`,
+        ['case',
+          ['==', ['slice', ['get', `feature${featureIndex}`], 0, 20], 'de/blockkennzeichen-'], 'de/blockkennzeichen',
+          ['get', `feature${featureIndex}`],
+        ],
+        {
+          type: 'symbol',
+          minzoom: 13,
+          maxzoom: 16,
+          source: 'openrailwaymap_signals',
+          'source-layer': 'signals_railway_signals',
+          filter: ['!=', ['get', `feature${featureIndex}`], null],
+          layout: {
+            'symbol-z-order': 'source',
+            'icon-overlap': 'always',
+            'icon-offset': [0, -20 * featureIndex],
+          },
+        },
+      )
+    ),
+    ...[0, 1, 2, 3, 4, 5].flatMap(featureIndex =>
+      imageLayerWithOutline(
+        theme,
+        `railway_signals_high_${featureIndex}`,
+        ['get', `feature${featureIndex}`],
+        {
+          type: 'symbol',
+          minzoom: 16,
+          source: 'openrailwaymap_signals',
+          'source-layer': 'signals_railway_signals',
+          filter: ['!=', ['get', `feature${featureIndex}`], null],
+          layout: {
+            'symbol-z-order': 'source',
+            'icon-overlap': 'always',
+            'icon-offset': [0, -20 * featureIndex],
+          },
+        },
+      )
+    ),
+    {
+      id:`railway_signals_high_text`,
+      type: 'symbol',
+      minzoom: 16,
+      source: 'openrailwaymap_signals',
+      'source-layer': 'signals_railway_signals',
+      filter: ['all',
+        ['!=', ['get', `ref`], null],
+        ['!=', ['get', `feature0`], null],
       ],
-      {
-        type: 'symbol',
-        minzoom: 13,
-        maxzoom: 16,
-        source: 'openrailwaymap_signals',
-        'source-layer': 'signals_railway_signals',
-        layout: {
-          'symbol-z-order': 'source',
-          'icon-overlap': 'always',
-        },
+      paint: {
+        'text-color': colors[theme].text.main,
+        'text-halo-color': ['case',
+          ['boolean', ['feature-state', 'hover'], false], colors[theme].hover.textHalo,
+          colors[theme].halo
+        ],
+        'text-halo-width': ['case',
+          ['==', ['slice', ['get', 'feature0'], 0, 20], 'de/blockkennzeichen-'], 2.0,
+          1.5,
+        ],
+        'text-halo-blur': 1,
       },
-    ),
-    ...imageLayerWithOutline(
-      theme,
-      'railway_signals_high',
-      ['get', 'feature'],
-      {
-        type: 'symbol',
-        minzoom: 16,
-        source: 'openrailwaymap_signals',
-        'source-layer': 'signals_railway_signals',
-        paint: {
-          'text-color': colors[theme].text.main,
-          'text-halo-color': ['case',
-            ['boolean', ['feature-state', 'hover'], false], colors[theme].hover.textHalo,
-            colors[theme].halo
-          ],
-          'text-halo-width': ['case',
-            ['==', ['slice', ['get', 'feature'], 0, 20], 'de/blockkennzeichen-'], 2.0,
-            1.5,
-          ],
-          'text-halo-blur': 1,
-        },
-        layout: {
-          'symbol-z-order': 'source',
-          'icon-overlap': 'always',
-          'text-field': ['case',
-            ['==', ['slice', ['get', 'feature'], 0, 20], 'de/blockkennzeichen-'], ['get', 'ref_multiline'],
-            ['get', 'ref'],
-          ],
-          'text-font': ['Noto Sans Medium'],
-          'text-size': 9,
-          'text-optional': true,
-          'text-anchor': ['case',
-            ['==', ['slice', ['get', 'feature'], 0, 20], 'de/blockkennzeichen-'], 'center',
-            'top',
-          ],
-          'text-offset': ['case',
-            ['==', ['slice', ['get', 'feature'], 0, 20], 'de/blockkennzeichen-'], ['literal', [0, 0]],
-            ['literal', [0, 1.5]],
-          ],
-        },
+      layout: {
+        'symbol-z-order': 'source',
+        'text-field': ['case',
+          ['==', ['slice', ['get', 'feature0'], 0, 20], 'de/blockkennzeichen-'], ['get', 'ref_multiline'],
+          ['get', 'ref'],
+        ],
+        'text-font': ['Noto Sans Medium'],
+        'text-size': 9,
+        'text-anchor': ['case',
+          ['==', ['slice', ['get', 'feature0'], 0, 20], 'de/blockkennzeichen-'], 'center',
+          'top',
+        ],
+        'text-offset': ['case',
+          ['==', ['slice', ['get', 'feature0'], 0, 20], 'de/blockkennzeichen-'], ['literal', [0, 0]],
+          ['literal', [0, 1.5]],
+        ],
       },
-    ),
+    },
     {
       id: 'railway_signals_deactivated',
       type: 'symbol',
@@ -2822,11 +2920,11 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
       layout: {
         'icon-overlap': 'always',
         'icon-image': ['case',
-          ['get', 'direction_both'], 'sdf:general/signal-direction-both',
+          ['coalesce', ['get', 'direction_both'], false], 'sdf:general/signal-direction-both',
           'sdf:general/signal-direction',
         ],
         'icon-anchor': ['case',
-          ['get', 'direction_both'], 'center',
+          ['coalesce', ['get', 'direction_both'], false], 'center',
           'top',
         ],
         'icon-rotate': ['get', 'azimuth'],
@@ -2862,6 +2960,19 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
         },
       },
     ),
+    {
+      id: 'electrification_signals_deactivated',
+      type: 'symbol',
+      minzoom: 15,
+      source: 'openrailwaymap_electrification',
+      'source-layer': 'electrification_signals',
+      filter: ['get', 'deactivated'],
+      layout: {
+        'symbol-z-order': 'source',
+        'icon-overlap': 'always',
+        'icon-image': 'general/signal-deactivated',
+      }
+    },
     railwayKmText(theme),
     {
       id: 'electrification_railway_text_high',
@@ -3380,11 +3491,14 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
       paint: loadingGaugeFillPaint(theme, gauge_construction_dashes),
       layout: loadingGaugeLayout,
     },
-    preferredDirectionLayer(theme, 'railway_preferred_direction', ['any',
-      ['==', ['get', 'preferred_direction'], 'forward'],
-      ['==', ['get', 'preferred_direction'], 'backward'],
-      ['==', ['get', 'preferred_direction'], 'both'],
-    ]),
+    preferredDirectionLayer(theme, 'railway_preferred_direction',
+      ['any',
+        ['==', ['get', 'preferred_direction'], 'forward'],
+        ['==', ['get', 'preferred_direction'], 'backward'],
+        ['==', ['get', 'preferred_direction'], 'both'],
+      ],
+      loadingGaugeFillColor,
+    ),
     railwayKmText(theme),
     {
       id: 'loading_gauge_railway_text_high',
@@ -3614,11 +3728,14 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
       paint: trackClassFillPaint(theme, gauge_construction_dashes),
       layout: loadingGaugeLayout,
     },
-    preferredDirectionLayer(theme, 'railway_preferred_direction', ['any',
-      ['==', ['get', 'preferred_direction'], 'forward'],
-      ['==', ['get', 'preferred_direction'], 'backward'],
-      ['==', ['get', 'preferred_direction'], 'both'],
-    ]),
+    preferredDirectionLayer(theme, 'railway_preferred_direction',
+      ['any',
+        ['==', ['get', 'preferred_direction'], 'forward'],
+        ['==', ['get', 'preferred_direction'], 'backward'],
+        ['==', ['get', 'preferred_direction'], 'both'],
+      ],
+      trackClassFillColor,
+    ),
     railwayKmText(theme),
     {
       id: 'track_class_railway_text_high',
@@ -3754,7 +3871,7 @@ const layers = Object.fromEntries(knownThemes.map(theme => [theme, {
       layout: {
         'symbol-z-order': 'source',
         'symbol-placement': 'line',
-        'text-field': '{loading_gauge}',
+        'text-field': '{track_class}',
         // TODO not present: oblique font
         'text-font': ['Noto Sans Bold'],
         'text-size': 11,
@@ -4052,6 +4169,7 @@ const legendData = {
           railway: feature.feature,
         },
       })),
+    "openrailwaymap_standard-standard_railway_grouped_stations": [],
     "openrailwaymap_standard-standard_railway_turntables": [
       {
         legend: 'Turntable',
@@ -4198,19 +4316,20 @@ const legendData = {
     ],
     'openrailwaymap_speed-speed_railway_signals': [
       // TODO filter per country polygon
-      ...speed_railway_signals.features.map(feature => ({
+      ...speed_railway_signals.map(feature => ({
         legend: `(${feature.country}) ${feature.description}`,
         type: 'point',
         properties: {
-          feature: feature.icon.default,
+          feature0: feature.icon.default,
           type: 'line',
           azimuth: null,
+          deactivated: false,
           direction_both: false,
         },
         variants: (feature.icon.cases ?? []).map(item => ({
           legend: item.description,
           properties: {
-            feature: item.example ?? item.value,
+            feature0: item.example ?? item.value,
           },
         })),
       })),
@@ -4218,9 +4337,10 @@ const legendData = {
         legend: 'signal direction',
         type: 'point',
         properties: {
-          feature: 'does-not-exist',
+          feature0: 'does-not-exist',
           type: 'line',
           azimuth: 135.5,
+          deactivated: false,
           direction_both: false,
         },
         variants: [
@@ -4231,6 +4351,17 @@ const legendData = {
             },
           },
         ],
+      },
+      {
+        legend: '(deactivated)',
+        type: 'point',
+        properties: {
+          feature0: 'pl/w21-40',
+          type: 'line',
+          azimuth: null,
+          deactivated: true,
+          direction_both: false,
+        },
       },
     ],
   },
@@ -4366,11 +4497,11 @@ const legendData = {
       },
     ],
     'openrailwaymap_signals-signals_railway_signals': [
-      ...signals_railway_signals.features.map(feature => ({
+      ...signals_railway_signals.map(feature => ({
         legend: `${feature.country ? `(${feature.country}) ` : ''}${feature.description}`,
         type: 'point',
         properties: {
-          feature: feature.icon.default,
+          feature0: feature.icon.default,
           type: 'line',
           azimuth: null,
           deactivated: false,
@@ -4379,7 +4510,7 @@ const legendData = {
         variants: (feature.icon.cases ?? []).map(item => ({
           legend: item.description,
           properties: {
-            feature: item.example ?? item.value,
+            feature0: item.example ?? item.value,
           },
         })),
       })),
@@ -4387,7 +4518,7 @@ const legendData = {
         legend: 'signal direction',
         type: 'point',
         properties: {
-          feature: 'does-not-exist',
+          feature0: 'does-not-exist',
           type: 'line',
           azimuth: 135.5,
           deactivated: false,
@@ -4407,7 +4538,7 @@ const legendData = {
         legend: '(deactivated)',
         type: 'point',
         properties: {
-          feature: 'de/ks-combined',
+          feature0: 'de/ks-combined',
           type: 'line',
           azimuth: null,
           deactivated: true,
@@ -4627,13 +4758,14 @@ const legendData = {
       },
     ],
     'openrailwaymap_electrification-electrification_signals': [
-      ...electrification_signals.features.map(feature => ({
+      ...electrification_signals.map(feature => ({
         legend: `(${feature.country}) ${feature.description}`,
         type: 'point',
         properties: {
           feature: feature.icon.default,
           type: 'line',
           azimuth: null,
+          deactivated: false,
           direction_both: false,
         },
         variants: (feature.icon.cases ?? []).map(item => ({
@@ -4650,6 +4782,7 @@ const legendData = {
           feature: 'does-not-exist',
           type: 'line',
           azimuth: 135.5,
+          deactivated: false,
           direction_both: false,
         },
         variants: [
@@ -4660,6 +4793,17 @@ const legendData = {
             },
           },
         ],
+      },
+      {
+        legend: '(deactivated)',
+        type: 'point',
+        properties: {
+          feature: 'de/el6',
+          type: 'line',
+          azimuth: null,
+          deactivated: true,
+          direction_both: false,
+        },
       },
     ],
   },

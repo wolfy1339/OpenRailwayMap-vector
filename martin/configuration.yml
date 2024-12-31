@@ -53,9 +53,9 @@ postgres:
         train_protection_rank: integer
         electrification_state: string
         frequency: number
-        voltage: number
+        voltage: integer
         future_frequency: number
-        future_voltage: number
+        future_voltage: integer
         electrification_label: string
         gauge0: string
         gaugeint0: number
@@ -67,6 +67,9 @@ postgres:
         loading_gauge: string
         track_class: string
         reporting_marks: string
+        operator: string
+        traffic_mode: string
+        radio: string
 
     railway_line_med:
       schema: public
@@ -95,9 +98,9 @@ postgres:
         train_protection_rank: integer
         electrification_state: string
         frequency: number
-        voltage: number
+        voltage: integer
         future_frequency: number
-        future_voltage: number
+        future_voltage: integer
         electrification_label: string
         gauge0: string
         gaugeint0: number
@@ -109,6 +112,9 @@ postgres:
         loading_gauge: string
         track_class: string
         reporting_marks: string
+        operator: string
+        traffic_mode: string
+        radio: string
 
     railway_line_high:
       schema: public
@@ -138,9 +144,9 @@ postgres:
         train_protection_rank: integer
         electrification_state: string
         frequency: number
-        voltage: number
+        voltage: integer
         future_frequency: number
-        future_voltage: number
+        future_voltage: integer
         electrification_label: string
         gauge0: string
         gaugeint0: number
@@ -152,6 +158,9 @@ postgres:
         loading_gauge: string
         track_class: string
         reporting_marks: string
+        operator: string
+        traffic_mode: string
+        radio: string
 
     # --- Standard --- #
 
@@ -165,6 +174,7 @@ postgres:
         id: integer
         osm_id: integer
         label: string
+        uic_ref: string
 
     standard_railway_text_stations_med:
       schema: public
@@ -176,6 +186,7 @@ postgres:
         id: integer
         osm_id: integer
         label: string
+        uic_ref: string
 
     standard_railway_turntables:
       schema: public
@@ -201,6 +212,23 @@ postgres:
         station: string
         label: string
         name: string
+        count: integer
+        uic_ref: string
+
+    standard_railway_grouped_stations:
+      schema: public
+      table: standard_railway_grouped_stations
+      srid: 3857
+      geometry_column: way
+      geometry_type: POLYGON
+      properties:
+        id: integer
+        osm_id: integer
+        railway: string
+        station: string
+        label: string
+        name: string
+        uic_ref: string
 
     standard_railway_symbols:
       schema: public
@@ -252,11 +280,14 @@ postgres:
       properties:
         id: integer
         osm_id: integer
-        feature: string
+        feature0: string
+        feature1: string
         type: string
         ref: string
         azimuth: number
         direction_both: boolean
+        deactivated: boolean
+        speed: integer
 
     # --- Signals --- #
 
@@ -272,7 +303,11 @@ postgres:
         railway: string
         ref: string
         ref_multiline: string
-        feature: string
+        feature0: string
+        feature1: string
+        feature2: string
+        feature3: string
+        feature4: string
         deactivated: boolean
         azimuth: number
         direction_both: boolean
@@ -294,7 +329,9 @@ postgres:
         azimuth: number
         direction_both: boolean
         ref: string
-
+        deactivated: boolean
+        frequency: number
+        voltage: integer
 
   functions:
 
