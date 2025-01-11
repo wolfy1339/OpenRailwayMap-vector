@@ -133,36 +133,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
--- Get name for labelling in standard style depending whether it is a bridge, a tunnel or none of these two.
-CREATE OR REPLACE FUNCTION railway_label_name(reporting_marks TEXT[], name TEXT, tunnel TEXT, tunnel_name TEXT, bridge TEXT, bridge_name TEXT) RETURNS TEXT AS $$
-DECLARE
-  reporting_marks_text TEXT;
-  label TEXT;
-BEGIN
-  reporting_marks_text := railway_reporting_marks(reporting_marks, false);
-
-  -- Determine the base label based on tunnel and bridge
-  IF tunnel IS NOT NULL AND tunnel != 'no' THEN
-    label := COALESCE(tunnel_name, name);
-  ELSIF bridge IS NOT NULL AND bridge != 'no' THEN
-    label := COALESCE(bridge_name, name);
-  ELSE
-    label := name;
-  END IF;
-
-  -- Prepend reporting marks if not NULL
-  RETURN COALESCE(reporting_marks_text, '') || CASE WHEN reporting_marks_text IS NOT NULL THEN ' ' ELSE '' END || label;
-
-END;
-$$ LANGUAGE plpgsql
-    IMMUTABLE
-    LEAKPROOF
-    PARALLEL SAFE;
-
 -- Get label for electrification
 CREATE OR REPLACE FUNCTION railway_electrification_label(voltage INT, frequency REAL) RETURNS TEXT AS $$
 DECLARE
+
   volt_int INTEGER;
   volt_text TEXT;
 BEGIN
