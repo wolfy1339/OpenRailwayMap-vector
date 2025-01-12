@@ -346,14 +346,29 @@ function railway_line_state(tags)
   end
 end
 
-function railway_line_name(reporting_mark, name, tunnel, tunnel_name, bridge, bridge_name)
-  if tunnel then
-    return reporting_mark + " " + (tunnel_name or name)
-  elseif bridge then
-    return reporting_mark + " " + (bridge_name or name)
-  else
-    return reporting_mark + " " + name
+function railway_line_name(reporting_marks, name, tunnel, tunnel_name, bridge, bridge_name)
+  -- Safely handle the case when reporting_marks is nil
+  local reporting_mark = nil
+  if reporting_marks and not (reporting_marks == '') then
+    reporting_mark = string.gmatch(reporting_marks, '[^;]+')()
   end
+
+  -- Determine the line name (name, tunnel_name, or bridge_name)
+  local result
+  if tunnel then
+    result = tunnel_name or name
+  elseif bridge then
+    result = bridge_name or name
+  else
+    result = name
+  end
+
+  -- Prepend the reporting_mark if it exists
+  if reporting_mark and result then
+    result = reporting_mark .. " " .. result
+  end
+
+  return result
 end
 
 local electrification_values = osm2pgsql.make_check_values_func({'contact_line', 'yes', 'rail', 'ground-level_power_supply', '4th_rail', 'contact_line;rail', 'rail;contact_line'})
@@ -574,11 +589,10 @@ function osm2pgsql.process_way(object)
 
     local current_electrification_state, voltage, frequency, future_voltage, future_frequency = electrification_state(tags)
 
-    local reporting_mark = string.gmatch(reporting_marks, '[^;]+')[0]
-
     local tunnel = tags['tunnel'] and tags['tunnel'] ~= 'no' or false
     local bridge = tags['bridge'] and tags['bridge'] ~= 'no' or false
-    local name = railway_line_name(reporting_mark ,state_name, tunnel, tags['tunnel:name'], bridge, tags['bridge:name'])
+    local reporting_marks = tags['reporting_marks']
+    local name = railway_line_name(reporting_marks, state_name, tunnel, tags['tunnel:name'], bridge, tags['bridge:name'])
 
     local preferred_direction = tags['railway:preferred_direction']
     local dominant_speed, speed_label = dominant_speed_label(preferred_direction, tags['maxspeed'], tags['maxspeed:forward'], tags['maxspeed:backward'])
@@ -613,7 +627,7 @@ function osm2pgsql.process_way(object)
         gauges = split_semicolon_to_sql_array(gauge),
         loading_gauge = tags['loading_gauge'],
         track_class = tags['railway:track_class'],
-        reporting_marks = split_semicolon_to_sql_array(tags['reporting_marks']),
+        reporting_marks = split_semicolon_to_sql_array(reporting_marks),
         train_protection = railway_train_protection,
         train_protection_rank = railway_train_protection_rank,
         operator = split_semicolon_to_sql_array(tags['operator']),
