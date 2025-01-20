@@ -36,13 +36,28 @@ jobs:
 
     strategy:
       matrix:
-        tiles:
-          - low-med
-          - high
-          - standard
-          - speed
-          - signals
-          - electrification
+        # Generate with (Fish shell):
+        #   for i in (seq -10 38); echo "- '$i,35,"(math $i + 1)",70'"; end
+        bbox:
+          - '42, -135, 43, -52'
+          - '43, -135, 44, -52'
+          - '44, -135, 45, -52'
+          - '45, -135, 46, -52'
+          - '46, -135, 47, -52'
+          - '47, -135, 48, -52'
+          - '48, -135, 49, -52'
+          - '49, -135, 50, -52'
+          - '50, -135, 51, -52'
+          - '51, -135, 52, -52'
+          - '52, -135, 53, -52'
+          - '53, -135, 54, -52'
+          - '54, -135, 55, -52'
+          - '55, -135, 56, -52'
+          - '56, -135, 57, -52'
+          - '57, -135, 58, -52'
+          - '58, -135, 59, -52'
+          - '59, -135, 60, -52'
+          - '60, -135, 61, -52'
 
     steps:
       - name: Checkout
@@ -65,25 +80,35 @@ jobs:
 
       - name: Generate tiles
         env:
-          TILES: ${{ matrix.tiles }}
-          BBOX: '-135.2,42.1,-53.0,60.8'
+          BBOX: ${{ matrix.bbox }}
         run: |
-          docker compose run martin-cp
-          ls -lah tiles/*.mbtiles
+          docker compose run --no-deps martin-cp
+
+          mkdir -p "tiles/split/${{ matrix.bbox }}"
+          mv tiles/*.mbtiles "tiles/split/${{ matrix.bbox }}"
+
+      - name: List generated tiles
+        run: |
+          ls -lah tiles/split/${{ matrix.bbox }}/*.mbtiles
 
       - uses: actions/upload-artifact@v4
         with:
-          name: tiles-${{ matrix.tiles }}
+          name: tiles-${{ matrix.bbox }}
           path: |
-            tiles/*.mbtiles
+            tiles/split
           if-no-files-found: error
           retention-days: 3
 
   deploy-tiles:
-    name: Deploy tiles
+    name: Merge and deploy tiles
     runs-on: ubuntu-latest
     needs: generate-tiles
     environment: tiles-production
+
+    env:
+      # Generate with (Fish shell):
+      #   for i in (seq -10 38); echo -n "$i,35,"(math $i + 1)",70 "; end
+      BBOXES: '42, -135, 43, -52 43, -135, 44, -52 44, -135, 45, -52 45, -135, 46, -52 46, -135, 47, -52 47, -135, 48, -52 48, -135, 49, -52 49, -135, 50, -52 50, -135, 51, -52 51, -135, 52, -52 52, -135, 53, -52 53, -135, 54, -52 54, -135, 55, -52 55, -135, 56, -52 56, -135, 57, -52 57, -135, 58, -52 58, -135, 59, -52 59, -135, 60, -52 60, -135, 61, -52'
 
     steps:
       - name: Checkout
@@ -104,9 +129,19 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          # No name: download everything
-          path: tiles
+          pattern: tiles-*
           merge-multiple: true
+          path: tiles/split
+
+      - name: Merge tiles
+        run: |
+          docker compose run --entrypoint /tiles/merge.sh -e BBOXES --no-deps martin-cp
+
+      - name: Delete split tiles
+        run: |
+          for bbox in $BBOXES; do
+            rm -rf "tiles/split/$bbox"
+          done
 
       - name: List generated tiles
         run: |

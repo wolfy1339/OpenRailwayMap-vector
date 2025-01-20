@@ -184,6 +184,12 @@ const stationFeatures = {
     uic_ref: {
       name: 'UIC reference',
     },
+    operator: {
+      name: 'Operator',
+    },
+    network: {
+      name: 'Network',
+    }
   },
 }
 
@@ -209,7 +215,6 @@ const features = {
     },
   },
   'openrailwaymap_standard-standard_railway_symbols': {
-    labelProperty: 'feature',
     features: Object.fromEntries(
       poi.features.flatMap(feature =>
         [
@@ -236,6 +241,9 @@ const features = {
       pos: {
         name: 'Position',
       },
+      operator: {
+        name: 'Operator',
+      }
     },
   },
   'openrailwaymap_standard-standard_railway_switch_ref': {

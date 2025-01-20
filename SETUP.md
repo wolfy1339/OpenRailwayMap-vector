@@ -94,10 +94,7 @@ docker compose run --build import import
 
 Build the tiles:
 ```shell
-export BBOX='-190.2,11.8,-45.0,83.9'
-for tile in low-med high standard speed signals electrification; do
-    env "TILES=$tile" docker compose up martin-cp
-done
+docker compose run -e BBOX='-190.2,11.8,-45.0,83.9' martin-cp
 ```
 
 Build and deploy the tile server:

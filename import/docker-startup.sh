@@ -21,6 +21,7 @@ import)
   OSM2PGSQL_INPUT_FILE="/data/${OSM2PGSQL_DATAFILE:-data.osm.pbf}"
   OSM2PGSQL_FILTERED_FILE="/data/filtered/${OSM2PGSQL_DATAFILE:-data.osm.pbf}"
   echo "Filtering data from $OSM2PGSQL_INPUT_FILE to $OSM2PGSQL_FILTERED_FILE"
+  mkdir -p "$(dirname "$OSM2PGSQL_FILTERED_FILE")"
   [[ -f "$OSM2PGSQL_FILTERED_FILE" ]] || \
     osmium tags-filter \
       -o "$OSM2PGSQL_FILTERED_FILE" \
@@ -33,6 +34,7 @@ import)
       nwr/proposed:railway \
       n/public_transport=stop_position \
       nwr/public_transport=platform \
+      r/public_transport=stop_area \
       r/route=train \
       r/route=tram \
       r/route=light_rail \
