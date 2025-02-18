@@ -1,5 +1,7 @@
 tags:
   # railway tag is included by default
+  - 'railway:signal:brake_test'
+  - 'railway:signal:brake_test:form'
   - 'railway:signal:combined'
   - 'railway:signal:combined:form'
   - 'railway:signal:combined:states'
@@ -40,6 +42,7 @@ tags:
   - 'railway:signal:main:height'
   - 'railway:signal:main:states'
   - 'railway:signal:main:substitute_signal'
+  - 'railway:signal:main:PT_priority'
   - 'railway:signal:main_repeated'
   - 'railway:signal:main_repeated:form'
   - 'railway:signal:main_repeated:states'
@@ -64,6 +67,8 @@ tags:
   - 'railway:signal:ring:only_transit'
   - 'railway:signal:radio'
   - 'railway:signal:radio:form'
+  - 'railway:signal:short_route'
+  - 'railway:signal:short_route:form'
   - 'railway:signal:shunting'
   - 'railway:signal:shunting:form'
   - 'railway:signal:shunting:states'
@@ -126,6 +131,9 @@ types:
   - { type: resetting_switch_distant }
   - { type: humping }
   - { type: snowplow }
+  - { type: wrong_road }
+  - { type: short_route }
+  - { type: brake_test }
 
 features:
 
@@ -581,23 +589,23 @@ features:
 
   # --- BE --- #
 
-  - description: grand signal d'arrêt
+  - description: Grand Signal d'Arrêt
     country: BE
     icon: { default: 'be/GSA-V' }
     tags:
       - { tag: 'railway:signal:main', value: 'BE:GSA' }
 
-  - description: signal d'arrêt simplifié
+  - description: Signal d'Arrêt Simplifié
     country: BE
     icon: { default: 'be/SAS' }
     tags:
-      - { tag: 'railway:signal:shunting', value: 'BE:SAS' }
+      - { tag: 'railway:signal:minor', value: 'BE:SAS' }
 
-  - description: petit signal d'arrêt
+  - description: Petit Signal d'Arrêt
     country: BE
     icon: { default: 'be/PSA' }
     tags:
-      - { tag: 'railway:signal:minor', value: 'BE:PSA' }
+      - { tag: 'railway:signal:shunting', value: 'BE:PSA' }
 
   - description: (BME) Shunting signal, triangle
     country: BE
@@ -640,6 +648,61 @@ features:
       - { tag: 'railway:signal:speed_limit', value: 'BE:VIS' }
       - { tag: 'railway:signal:speed_limit:form', value: 'light' }
 
+  - description: Reference speed
+    country: BE
+    icon:
+      match: 'railway:signal:speed_limit:speed'
+      cases:
+        - { regex: '^(12|16)0$', value: 'be/PVR-{}', example: 'be/PVR-{120}' }
+      default: 'be/PVR-empty'
+    tags:
+      - { tag: 'railway:signal:speed_limit', value: 'BE:PVR' }
+      - { tag: 'railway:signal:speed_limit:form', value: 'sign' }
+
+  - description: Announcement of a speed limit
+    country: BE
+    icon:
+      match: 'railway:signal:speed_limit_distant:speed'
+      cases:
+        - { regex: '^90$', value: 'be/PVA-{}', example: 'be/PVA-{90}' }
+      default: 'be/PVA-empty'
+    tags:
+      - { tag: 'railway:signal:speed_limit_distant', value: 'BE:PVA' }
+      - { tag: 'railway:signal:speed_limit_distant:form', value: 'sign' }
+
+  - description: Beginning of a speed limit
+    country: BE
+    icon:
+      match: 'railway:signal:speed_limit:speed'
+      cases:
+        - { regex: '^(9|10|14)0$', value: 'be/PVO-{}', example: 'be/PVO-{100}' }
+      default: 'be/PVO-empty'
+    tags:
+      - { tag: 'railway:signal:speed_limit', value: 'BE:PVO' }
+      - { tag: 'railway:signal:speed_limit:form', value: 'sign' }
+
+  - description: Higher speed limit below reference speed
+    country: BE
+    icon:
+      match: 'railway:signal:speed_limit:speed'
+      cases:
+        - { regex: '^(4|6|9|10)0$', value: 'be/PVJ-{}', example: 'be/PVJ-{60}' }
+      default: 'be/PVJ-empty'
+    tags:
+      - { tag: 'railway:signal:speed_limit', value: 'BE:PVJ' }
+      - { tag: 'railway:signal:speed_limit:form', value: 'sign' }
+
+  - description: Higher speed limit for some traffic
+    country: BE
+    icon:
+      match: 'railway:signal:speed_limit:speed'
+      cases:
+        - { regex: '^60$', value: 'be/PVV-{}', example: 'be/PVV-{60}' }
+      default: 'be/PVV-empty'
+    tags:
+      - { tag: 'railway:signal:speed_limit', value: 'BE:PVV' }
+      - { tag: 'railway:signal:speed_limit:form', value: 'sign' }
+
   - description: Panto distant
     country: BE
     icon: { default: 'be/PBA' }
@@ -663,6 +726,33 @@ features:
       - { tag: 'railway:signal:electricity', value: 'BE:PRL' }
       - { tag: 'railway:signal:electricity:form', value: 'sign' }
       - { tag: 'railway:signal:electricity:type', value: 'pantograph_up' }
+
+  - description: train protection block markers (arrow)
+    country: BE
+    icon:
+      match: 'railway:signal:position'
+      cases:
+        - { regex: '^left$', value: 'general/etcs-stop-marker-arrow-right' }
+        - { regex: '^overhead$', value: 'general/etcs-stop-marker-arrow-down' }
+      default: 'general/etcs-stop-marker-arrow-left'
+    tags:
+      - { tag: 'railway:signal:train_protection', value: 'BE:PRA' }
+      - { tag: 'railway:signal:train_protection:form', value: 'sign' }
+      - { tag: 'railway:signal:train_protection:type', value: 'block_marker' }
+      - { tag: 'railway:signal:train_protection:shape', value: 'triangle' }
+
+  - description: train protection block markers (triangle)
+    country: BE
+    icon:
+      match: 'railway:signal:position'
+      cases:
+        - { regex: '^left$', value: 'general/etcs-stop-marker-triangle-right' }
+        - { regex: '^overhead$', value: 'general/etcs-stop-marker-triangle-down' }
+      default: 'general/etcs-stop-marker-triangle-left'
+    tags:
+      - { tag: 'railway:signal:train_protection', value: 'BE:PRA' }
+      - { tag: 'railway:signal:train_protection:form', value: 'sign' }
+      - { tag: 'railway:signal:train_protection:type', value: 'block_marker' }
 
   # --- CH --- #
 
@@ -1138,6 +1228,25 @@ features:
       - { tag: 'railway:signal:stop', value: 'DE-ESO:ne5' }
       - { tag: 'railway:signal:stop:form', value: 'sign' }
 
+  - description: stop demand post BOStrab Sh 7 (sign)
+    country: DE
+    icon: { default: 'de/ne5-sign' }
+    tags:
+      - { tag: 'railway:signal:stop', value: 'DE-BOStrab:sh7' }
+      - { tag: 'railway:signal:stop:form', value: 'sign' }
+
+  - description: Lift / Fold snowplow Ne 7 (sign)
+    country: DE
+    icon:
+      match: 'railway:signal:snowplow:type'
+      cases:
+        - { regex: '^up$', value: 'de/ne7-yellow-up' }
+        - { regex: '^down$', value: 'de/ne7-yellow-down' }
+      default: 'de/ne7-yellow-down'
+    tags:
+      - { tag: 'railway:signal:snowplow', value: 'DE-ESO:ne7' }
+      - { tag: 'railway:signal:snowplow:form', value: 'sign' }
+
   - description: Ne13 resetting switch signal
     country: DE
     icon: { default: 'de/ne13a' }
@@ -1171,14 +1280,28 @@ features:
     icon: { default: 'de/zs6-db-light' }
     tags:
       - { tag: 'railway:signal:wrong_road', value: 'DE-ESO:db:zs6' }
-      - { tag: 'railway:signal:wrong_road:form', value: 'sign' }
+      - { tag: 'railway:signal:wrong_road:form', value: 'light' }
 
   - description: wrong road signal Zs 7 (DR) (light)
     country: DE
     icon: { default: 'de/zs7-dr-light' }
     tags:
       - { tag: 'railway:signal:wrong_road', value: 'DE-ESO:db:zs7' }
-      - { tag: 'railway:signal:wrong_road:form', value: 'sign' }
+      - { tag: 'railway:signal:wrong_road:form', value: 'light' }
+
+  - description: entry into dead-end / early stop marker Zs 13 (sign)
+    country: DE
+    icon: { default: 'de/zs13-sign' }
+    tags:
+      - { tag: 'railway:signal:short_route', value: 'DE-ESO:zs13' }
+      - { tag: 'railway:signal:short_route:form', value: 'sign' }
+
+  - description: entry into dead-end / early stop marker Zs 13 (light)
+    country: DE
+    icon: { default: 'de/zs13-light' }
+    tags:
+      - { tag: 'railway:signal:short_route', value: 'DE-ESO:zs13' }
+      - { tag: 'railway:signal:short_route:form', value: 'light' }
 
   - description: tram minor stop sign Sh 1
     country: DE
@@ -1298,6 +1421,13 @@ features:
     tags:
       - { tag: 'railway:signal:main_repeated', value: 'DE-ESO:fahrtanzeiger' }
       - { tag: 'railway:signal:main_repeated:form', value: 'light' }
+
+  - description: brake test signal Zp 6-8
+    country: DE
+    icon: { default: 'de/zp8' }
+    tags:
+      - { tag: 'railway:signal:brake_test', value: 'DE-ESO:zp' }
+      - { tag: 'railway:signal:brake_test:form', value: 'light' }
 
   - description: departure signal Zp 9
     country: DE
@@ -1497,8 +1627,23 @@ features:
         - { regex: '^(.*;)?DE-ESO:sv0(;.*)?$', value: 'de/sv-sv0' }
       default: ''
     tags:
-      - { tag: 'railway:signal:combined', value: 'DE-ESO:hl' }
+      - { tag: 'railway:signal:combined', value: 'DE-ESO:sv' }
       - { tag: 'railway:signal:combined:form', value: 'light' }
+
+  - description: tram Fahrsignal mit Anmeldung LSA
+    country: DE
+    icon:
+      match: 'railway:signal:main:states'
+      cases:
+        - { regex: '^(.*;)?(DE-AVG|DE-BOStrab):f5(;.*)?$', value: 'de/bostrab/f5-st9' }
+        - { regex: '^(.*;)?(DE-AVG|DE-BOStrab):f3(;.*)?$', value: 'de/bostrab/f3-st9' }
+        - { regex: '^(.*;)?(DE-AVG|DE-BOStrab):f2(;.*)?$', value: 'de/bostrab/f2-st9' }
+        - { regex: '^(.*;)?(DE-AVG|DE-BOStrab):f1(;.*)?$', value: 'de/bostrab/f1-st9' }
+      default: 'de/bostrab/f0-st9'
+    tags:
+      - { tag: 'railway:signal:main', values: ['DE-AVG:f', 'DE-BOStrab:f'] }
+      - { tag: 'railway:signal:main:form', value: 'light' }
+      - { tag: 'railway:signal:main:PT_priority', value: 'requested;off' }
 
   - description: tram Fahrsignal
     country: DE
