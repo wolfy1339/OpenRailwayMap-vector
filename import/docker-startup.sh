@@ -16,8 +16,11 @@ function filter_data() {
 
     mkdir -p "$(dirname "$OSM2PGSQL_FILTERED_FILE")"
 
+    osmium tags-filter "$OSM2PGSQL_INPUT_FILE" \
+      --output "step1.osm.pbf" \
+      --script=filter_maxspeed_abandoned_railway.lua
     osmium tags-filter \
-      "$OSM2PGSQL_INPUT_FILE" \
+      "step1.osm.pbf" \
       --output "$OSM2PGSQL_FILTERED_FILE" \
       --expressions osmium-tags-filter
   fi
