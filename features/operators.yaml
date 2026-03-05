@@ -2250,8 +2250,9 @@ operators:
 
   - country: US
     names:
-      - 'CSX'
       - 'CSX Transportation'
+      - 'CSX'
+      - 'CSXT'
     color: '#003462'
 
   - country: US
@@ -2317,7 +2318,13 @@ operators:
   - country: US
     names:
       - 'New York & Atlantic Railway'
+      - 'New York and Atlantic Railway'
     color: '#38553E'
+
+  - country: US
+    names:
+      - 'Buckingham Branch Railroad'
+    color: '#de1c42'
 
   - country: US
     names:
@@ -2527,7 +2534,7 @@ operators:
 
   - country: US
     names:
-      - 'Berkshire & Eastern Railroad'
+      - 'Berkshire and Eastern Railroad'
     color: '#f68b1e'
 
   - country: US
@@ -2607,7 +2614,7 @@ operators:
 
   - country: US
     names:
-      - 'Columbus & Ohio River Railroad'
+      - 'Columbus and Ohio River Railroad'
     color: '#f68b1e'
 
   - country: US
