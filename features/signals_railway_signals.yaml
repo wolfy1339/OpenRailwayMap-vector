@@ -144,6 +144,7 @@ tags:
   - { tag: 'railway:signal:slope:deactivated', title: 'Slope deactivated', type: boolean }
   - { tag: 'railway:signal:slope:incline', title: 'Slope incline' }
   - { tag: 'railway:signal:slope:length', title: 'Slope length' }
+  - { tag: 'railway:signal:slope:shape', title: 'Slope shape' }
   - { tag: 'railway:signal:slope:distance', title: 'Slope distance' }
   - { tag: 'railway:signal:snowplow', title: 'Snowplow' }
   - { tag: 'railway:signal:snowplow:form', title: 'Snowplow form' }
@@ -6053,6 +6054,17 @@ features:
     tags:
       - { tag: 'railway:signal:speed_limit', value: 'GB-NR:speed_limit' }
       - { tag: 'railway:signal:speed_limit:form', value: 'sign' }
+
+  - description: Gradient post
+    country: GB
+    icon:
+      - match: 'railway:signal:slope:shape'
+        cases:
+          - { exact: 'board', value: 'gb/gradient-board' }
+        default: 'gb/gradient-arms'
+    tags:
+      - { tag: 'railway:signal:slope', value: 'GB-NR:gradient' }
+      - { tag: 'railway:signal:slope:form', value: 'sign' }
 
   # --- IT --- #
 
